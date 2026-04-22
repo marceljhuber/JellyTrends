@@ -410,7 +410,9 @@ public sealed class JellyTrendsController : ControllerBase
                 Rank = rank,
                 Title = meta.Name.Trim(),
                 Year = year,
-                ImdbId = imdbId
+                ImdbId = imdbId,
+                TmdbId = meta.MoviedbId?.ToString(CultureInfo.InvariantCulture),
+                TvdbId = meta.TvdbId?.ToString(CultureInfo.InvariantCulture)
             });
 
             rank++;
@@ -647,6 +649,10 @@ public sealed class JellyTrendsController : ControllerBase
         public int? Year { get; set; }
 
         public string? ImdbId { get; set; }
+
+        public string? TmdbId { get; set; }
+
+        public string? TvdbId { get; set; }
     }
 
     public sealed class ImdbSuggestionResponse
@@ -706,6 +712,12 @@ public sealed class JellyTrendsController : ControllerBase
 
         [System.Text.Json.Serialization.JsonPropertyName("imdb_id")]
         public string? ImdbId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("moviedb_id")]
+        public int? MoviedbId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("tvdb_id")]
+        public int? TvdbId { get; set; }
 
         public string? Year { get; set; }
 

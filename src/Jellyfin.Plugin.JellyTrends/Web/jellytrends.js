@@ -6,8 +6,17 @@
 
     var state = {
         busy: false,
-        lastHash: ''
+        lastHash: '',
+        trendingCache: null,
+        trendingCacheAt: 0,
+        moviesCache: null,
+        moviesCacheAt: 0,
+        showsCache: null,
+        showsCacheAt: 0
     };
+
+    var TRENDING_CACHE_MS = 5 * 60 * 1000;
+    var LIBRARY_CACHE_MS = 15 * 60 * 1000;
 
     function normalizeTitle(name) {
         return (name || '')
@@ -99,6 +108,8 @@
         var byTitle = new Map();
         var byTitleYear = new Map();
         var byImdb = new Map();
+        var byTmdb = new Map();
+        var byTvdb = new Map();
 
         (items || []).forEach(function (item) {
             var variants = [item.Name, item.OriginalTitle, item.SortName]
@@ -118,15 +129,25 @@
 
             var providerIds = item.ProviderIds || {};
             var imdb = providerIds.Imdb || providerIds.imdb || providerIds.IMDB || null;
+            var tmdb = providerIds.Tmdb || providerIds.TMDb || providerIds.TheMovieDb || providerIds.themoviedb || null;
+            var tvdb = providerIds.Tvdb || providerIds.TVDB || providerIds.thetvdb || null;
             if (imdb) {
                 byImdb.set(String(imdb).toLowerCase(), item);
+            }
+            if (tmdb) {
+                byTmdb.set(String(tmdb), item);
+            }
+            if (tvdb) {
+                byTvdb.set(String(tvdb), item);
             }
         });
 
         return {
             byTitle: byTitle,
             byTitleYear: byTitleYear,
-            byImdb: byImdb
+            byImdb: byImdb,
+            byTmdb: byTmdb,
+            byTvdb: byTvdb
         };
     }
 
@@ -147,6 +168,12 @@
             var libraryItem = null;
             if (entry.ImdbId) {
                 libraryItem = lookup.byImdb.get(String(entry.ImdbId).toLowerCase()) || null;
+            }
+            if (!libraryItem && entry.TmdbId) {
+                libraryItem = lookup.byTmdb.get(String(entry.TmdbId)) || null;
+            }
+            if (!libraryItem && entry.TvdbId) {
+                libraryItem = lookup.byTvdb.get(String(entry.TvdbId)) || null;
             }
 
             if (entry.Year) {
@@ -240,6 +267,41 @@
         return window.ApiClient.getJSON(window.ApiClient.getUrl('JellyTrends/trending'));
     }
 
+    function loadTrendingCached() {
+        var now = Date.now();
+        if (state.trendingCache && (now - state.trendingCacheAt) < TRENDING_CACHE_MS) {
+            return Promise.resolve(state.trendingCache);
+        }
+
+        return loadTrending().then(function (payload) {
+            state.trendingCache = payload || {};
+            state.trendingCacheAt = Date.now();
+            return state.trendingCache;
+        });
+    }
+
+    function getItemsCached(userId, includeType) {
+        var now = Date.now();
+        if (includeType === 'Movie' && state.moviesCache && (now - state.moviesCacheAt) < LIBRARY_CACHE_MS) {
+            return Promise.resolve(state.moviesCache);
+        }
+        if (includeType === 'Series' && state.showsCache && (now - state.showsCacheAt) < LIBRARY_CACHE_MS) {
+            return Promise.resolve(state.showsCache);
+        }
+
+        return getItems(userId, includeType).then(function (items) {
+            if (includeType === 'Movie') {
+                state.moviesCache = items;
+                state.moviesCacheAt = Date.now();
+            } else if (includeType === 'Series') {
+                state.showsCache = items;
+                state.showsCacheAt = Date.now();
+            }
+
+            return items;
+        });
+    }
+
     function getHomeTarget() {
         return document.querySelector('.homeSectionsContainer') ||
             document.querySelector('#homePage .padded-bottom-page') ||
@@ -289,9 +351,9 @@
 
         Promise.all([
             loadPluginConfig(),
-            loadTrending(),
-            getItems(userId, 'Movie'),
-            getItems(userId, 'Series')
+            loadTrendingCached(),
+            getItemsCached(userId, 'Movie'),
+            getItemsCached(userId, 'Series')
         ]).then(function (all) {
             var config = all[0] || {};
             var trending = all[1] || {};
@@ -337,7 +399,7 @@
             if (onHome()) {
                 run();
             }
-        }, 30000);
+        }, 180000);
         setTimeout(run, 1200);
     }
 
