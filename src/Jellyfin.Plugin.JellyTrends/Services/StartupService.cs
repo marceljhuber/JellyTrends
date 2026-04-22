@@ -37,6 +37,12 @@ public sealed class StartupService : IScheduledTask
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
-        return [];
+        return
+        [
+            new TaskTriggerInfo
+            {
+                Type = TaskTriggerInfo.TriggerStartup
+            }
+        ];
     }
 }
