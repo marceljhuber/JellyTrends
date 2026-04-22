@@ -356,8 +356,19 @@
             location.hash.indexOf('#/home.html') === 0;
     }
 
+    function isPlaybackActive() {
+        return !!(
+            document.querySelector('.videoPlayerContainer:not(.hide)') ||
+            document.querySelector('.htmlVideoPlayerContainer:not(.hide)') ||
+            document.querySelector('.videoOsd:not(.hide)')
+        );
+    }
+
     function run() {
-        if (state.busy || !window.ApiClient || !onHome()) {
+        if (state.busy || !window.ApiClient || !onHome() || isPlaybackActive()) {
+            if (!onHome() || isPlaybackActive()) {
+                removeRoot();
+            }
             return;
         }
 
@@ -376,7 +387,8 @@
             getItemsCached(userId, 'Movie'),
             getItemsCached(userId, 'Series')
         ]).then(function (all) {
-            if (currentRunId !== state.runId || !onHome()) {
+            if (currentRunId !== state.runId || !onHome() || isPlaybackActive()) {
+                removeRoot();
                 return;
             }
 
@@ -409,27 +421,27 @@
         });
     }
 
-    function watchNavigation() {
-        setInterval(function () {
-            if (location.hash !== state.lastHash) {
-                state.lastHash = location.hash;
-                if (!onHome()) {
-                    state.runId++;
-                    removeRoot();
-                }
-                setTimeout(run, 250);
-            }
-        }, 500);
+    function handleNavigationChange() {
+        state.lastHash = location.hash;
+        state.runId++;
+
+        if (!onHome() || isPlaybackActive()) {
+            removeRoot();
+            return;
+        }
+
+        setTimeout(run, 250);
     }
 
     function init() {
         state.lastHash = location.hash;
-        watchNavigation();
-        setInterval(function () {
-            if (onHome()) {
-                run();
+        window.addEventListener('hashchange', handleNavigationChange, true);
+        window.addEventListener('popstate', handleNavigationChange, true);
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                handleNavigationChange();
             }
-        }, 180000);
+        });
         setTimeout(run, 1200);
     }
 
