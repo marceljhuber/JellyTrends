@@ -4,6 +4,10 @@ JellyTrends adds Netflix-like trending rows to Jellyfin Home and only shows entr
 
 ![JellyTrends Banner](assets/jellytrends-banner.png)
 
+## Screenshot
+
+![JellyTrends Home Example](assets/jellytrends-home-example.png)
+
 ## What It Does
 
 - Adds `Top 10 Movies In Your Library` and `Top 10 Shows In Your Library` sections to the Home page.
