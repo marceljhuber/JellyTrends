@@ -7,6 +7,7 @@
     var state = {
         busy: false,
         lastHash: '',
+        runId: 0,
         trendingCache: null,
         trendingCacheAt: 0,
         moviesCache: null,
@@ -305,20 +306,27 @@
     function getHomeTarget() {
         return document.querySelector('.homeSectionsContainer') ||
             document.querySelector('#homePage .padded-bottom-page') ||
-            document.querySelector('.mainAnimatedPage.type-interior .padded-bottom-page') ||
-            document.querySelector('.mainAnimatedPage');
+            document.querySelector('.mainAnimatedPage[data-type="home"] .padded-bottom-page');
+    }
+
+    function removeRoot() {
+        var existing = document.querySelector('#jellytrends-root');
+        if (existing) {
+            existing.remove();
+        }
     }
 
     function render(matchesMovies, matchesShows) {
+        if (!onHome()) {
+            return;
+        }
+
         var homeTarget = getHomeTarget();
         if (!homeTarget) {
             return;
         }
 
-        var existing = document.querySelector('#jellytrends-root');
-        if (existing) {
-            existing.remove();
-        }
+        removeRoot();
 
         var root = document.createElement('div');
         root.id = 'jellytrends-root';
@@ -353,6 +361,7 @@
             return;
         }
 
+        var currentRunId = ++state.runId;
         state.busy = true;
 
         var userId = getCurrentUserId();
@@ -367,6 +376,10 @@
             getItemsCached(userId, 'Movie'),
             getItemsCached(userId, 'Series')
         ]).then(function (all) {
+            if (currentRunId !== state.runId || !onHome()) {
+                return;
+            }
+
             var config = all[0] || {};
             var trending = all[1] || {};
             var movies = all[2] || [];
@@ -400,6 +413,10 @@
         setInterval(function () {
             if (location.hash !== state.lastHash) {
                 state.lastHash = location.hash;
+                if (!onHome()) {
+                    state.runId++;
+                    removeRoot();
+                }
                 setTimeout(run, 250);
             }
         }, 500);
