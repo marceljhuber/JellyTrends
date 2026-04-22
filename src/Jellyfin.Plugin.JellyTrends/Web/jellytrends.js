@@ -154,7 +154,7 @@
 
             if (!libraryItem && !strictYearMatch) {
                 var candidates = lookup.byTitle.get(key) || [];
-                libraryItem = candidates.length ? candidates[0] : null;
+                libraryItem = selectBestCandidate(candidates, entry.Year);
             }
 
             if (!libraryItem || used.has(libraryItem.Id)) {
@@ -171,11 +171,42 @@
         return matches;
     }
 
+    function selectBestCandidate(candidates, targetYear) {
+        if (!candidates || !candidates.length) {
+            return null;
+        }
+
+        if (!targetYear) {
+            return candidates[0];
+        }
+
+        var best = null;
+        var bestDiff = 999;
+        candidates.forEach(function (candidate) {
+            var year = candidate.ProductionYear || null;
+            if (!year) {
+                return;
+            }
+
+            var diff = Math.abs(parseInt(year, 10) - parseInt(targetYear, 10));
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                best = candidate;
+            }
+        });
+
+        if (best && bestDiff <= 4) {
+            return best;
+        }
+
+        return null;
+    }
+
     function getItems(userId, includeType) {
         var query = {
             Recursive: true,
             IncludeItemTypes: includeType,
-            Fields: 'ProductionYear,ImageTags,ProviderIds',
+            Fields: 'ProductionYear,ImageTags,ProviderIds,OriginalTitle',
             SortBy: 'SortName',
             SortOrder: 'Ascending',
             Limit: 50000

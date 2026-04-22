@@ -90,16 +90,32 @@ public sealed class JellyTrendsController : ControllerBase
 
             try
             {
-                Task<List<TrendingEntry>> moviesTask = FetchCombinedFeedAsync(country, movieLimit, false, cancellationToken);
-                Task<List<TrendingEntry>> showsTask = FetchCombinedFeedAsync(country, showLimit, true, cancellationToken);
+                int moviePool = Math.Max(movieLimit * 6, 300);
+                int showPool = Math.Max(showLimit * 8, 500);
+
+                Task<List<TrendingEntry>> moviesTask = FetchCinemetaTopAsync(false, moviePool, cancellationToken);
+                Task<List<TrendingEntry>> showsTask = FetchCinemetaTopAsync(true, showPool, cancellationToken);
 
                 await Task.WhenAll(moviesTask, showsTask).ConfigureAwait(false);
 
+                List<TrendingEntry> movies = moviesTask.Result;
+                List<TrendingEntry> shows = showsTask.Result;
+
+                if (movies.Count < movieLimit || shows.Count < showLimit)
+                {
+                    Task<List<TrendingEntry>> appleMoviesTask = FetchCombinedFeedAsync(country, movieLimit, false, cancellationToken);
+                    Task<List<TrendingEntry>> appleShowsTask = FetchCombinedFeedAsync(country, showLimit, true, cancellationToken);
+                    await Task.WhenAll(appleMoviesTask, appleShowsTask).ConfigureAwait(false);
+
+                    movies = MergeTrends(movies, appleMoviesTask.Result);
+                    shows = MergeTrends(shows, appleShowsTask.Result);
+                }
+
                 response = new TrendingResponse
                 {
-                    Source = "Apple Marketing RSS multi-region + IMDb id enrichment",
-                    Movies = moviesTask.Result,
-                    Shows = showsTask.Result
+                    Source = "Cinemeta top lists + Apple RSS backup",
+                    Movies = movies,
+                    Shows = shows
                 };
             }
             catch
@@ -217,6 +233,145 @@ public sealed class JellyTrendsController : ControllerBase
 
         await EnrichWithImdbIdsAsync(mergedOrdered, isShow, cancellationToken).ConfigureAwait(false);
         return mergedOrdered;
+    }
+
+    private static async Task<List<TrendingEntry>> FetchCinemetaTopAsync(bool isShow, int limit, CancellationToken cancellationToken)
+    {
+        int pageSize = 100;
+        List<TrendingEntry> all = [];
+
+        for (int skip = 0; all.Count < limit && skip <= 1000; skip += pageSize)
+        {
+            string type = isShow ? "series" : "movie";
+            string url = skip == 0
+                ? $"https://v3-cinemeta.strem.io/catalog/{type}/top.json"
+                : $"https://v3-cinemeta.strem.io/catalog/{type}/top/skip={skip}.json";
+
+            List<TrendingEntry> page;
+            try
+            {
+                page = await FetchCinemetaPageAsync(url, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                break;
+            }
+
+            if (page.Count == 0)
+            {
+                break;
+            }
+
+            all.AddRange(page);
+
+            if (page.Count < pageSize)
+            {
+                break;
+            }
+        }
+
+        List<TrendingEntry> deduped = MergeTrends([], all);
+        if (deduped.Count > limit)
+        {
+            deduped = deduped.Take(limit).ToList();
+        }
+
+        return deduped;
+    }
+
+    private static async Task<List<TrendingEntry>> FetchCinemetaPageAsync(string url, CancellationToken cancellationToken)
+    {
+        using HttpRequestMessage request = new(HttpMethod.Get, url);
+        using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        CinemetaResponse? payload = await JsonSerializer.DeserializeAsync<CinemetaResponse>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        List<TrendingEntry> items = [];
+        if (payload?.Metas is null)
+        {
+            return items;
+        }
+
+        int rank = 1;
+        foreach (CinemetaMeta meta in payload.Metas)
+        {
+            if (string.IsNullOrWhiteSpace(meta.Name))
+            {
+                continue;
+            }
+
+            int? year = TryParseYear(meta.Year) ?? TryParseYear(meta.Released);
+            string? imdbId = null;
+            if (!string.IsNullOrWhiteSpace(meta.ImdbId) && meta.ImdbId.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
+            {
+                imdbId = meta.ImdbId;
+            }
+            else if (!string.IsNullOrWhiteSpace(meta.Id) && meta.Id.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
+            {
+                imdbId = meta.Id;
+            }
+
+            items.Add(new TrendingEntry
+            {
+                Rank = rank,
+                Title = meta.Name.Trim(),
+                Year = year,
+                ImdbId = imdbId
+            });
+
+            rank++;
+        }
+
+        return items;
+    }
+
+    private static int? TryParseYear(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        Match match = Regex.Match(text, "(19|20)\\d{2}");
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        return int.TryParse(match.Value, CultureInfo.InvariantCulture, out int year) ? year : null;
+    }
+
+    private static List<TrendingEntry> MergeTrends(List<TrendingEntry> primary, List<TrendingEntry> secondary)
+    {
+        List<TrendingEntry> merged = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+
+        void Append(IEnumerable<TrendingEntry> entries)
+        {
+            foreach (TrendingEntry entry in entries)
+            {
+                string key = !string.IsNullOrWhiteSpace(entry.ImdbId)
+                    ? "imdb:" + entry.ImdbId
+                    : BuildMergeKey(entry.Title, entry.Year);
+
+                if (seen.Add(key))
+                {
+                    merged.Add(entry);
+                }
+            }
+        }
+
+        Append(primary);
+        Append(secondary);
+
+        for (int i = 0; i < merged.Count; i++)
+        {
+            merged[i].Rank = i + 1;
+        }
+
+        return merged;
     }
 
     private static string BuildMergeKey(string title, int? year)
@@ -441,5 +596,24 @@ public sealed class JellyTrendsController : ControllerBase
         public string Name { get; set; } = string.Empty;
 
         public string ReleaseDate { get; set; } = string.Empty;
+    }
+
+    public sealed class CinemetaResponse
+    {
+        public List<CinemetaMeta>? Metas { get; set; }
+    }
+
+    public sealed class CinemetaMeta
+    {
+        public string Id { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("imdb_id")]
+        public string? ImdbId { get; set; }
+
+        public string? Year { get; set; }
+
+        public string? Released { get; set; }
     }
 }
