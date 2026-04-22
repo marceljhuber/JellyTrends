@@ -1,18 +1,18 @@
 ﻿[{
     "name":  "JellyTrends",
-    "owner":  "YOUR_GITHUB_USER",
+    "owner":  "marceljhuber",
     "description":  "Fetches Top charts for movies and TV shows, compares them with your Jellyfin library, and shows ranked Top 10 matches on the home screen.",
     "versions":  [
                      {
                          "changelog":  "Release 0.1.0.0",
                          "version":  "0.1.0.0",
-                         "checksum":  "9759028FCB95F35FC91EC50604B00E70",
-                         "timestamp":  "2026-04-22T06:17:03Z",
+                         "checksum":  "D69C98856855C2828ED65B8A67714782",
+                         "timestamp":  "2026-04-22T06:23:24Z",
                          "dependencies":  [
                                               "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
                                           ],
                          "targetAbi":  "10.10.7.0",
-                         "sourceUrl":  "https://github.com/YOUR_GITHUB_USER/JellyTrends/releases/download/0.1.0.0/Release-10.10.7.zip"
+                         "sourceUrl":  "https://github.com/marceljhuber/JellyTrends/releases/download/0.1.0.0/Release-10.10.7.zip"
                      }
                  ],
     "category":  "General",
