@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Jellyfin.Plugin.JellyTrends.Model;
 
 namespace Jellyfin.Plugin.JellyTrends.Helpers;
@@ -8,15 +7,40 @@ public static class TransformationPatches
 {
     public static string IndexHtml(PatchRequestPayload payload)
     {
+        string original = payload.Contents ?? string.Empty;
+
         if (!Plugin.Instance.Configuration.Enabled)
         {
-            return payload.Contents ?? string.Empty;
+            return original;
         }
 
-        Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Jellyfin.Plugin.JellyTrends.Inject.index.html")!;
-        using TextReader reader = new StreamReader(stream);
+        try
+        {
+            if (original.Contains("/JellyTrends/assets/jellytrends.js", StringComparison.OrdinalIgnoreCase))
+            {
+                return original;
+            }
 
-        string importedHtml = reader.ReadToEnd();
-        return Regex.Replace(payload.Contents ?? string.Empty, "(</head>)", importedHtml + "$1", RegexOptions.IgnoreCase);
+            using Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Jellyfin.Plugin.JellyTrends.Inject.index.html");
+            if (stream is null)
+            {
+                return original;
+            }
+
+            using TextReader reader = new StreamReader(stream);
+            string importedHtml = reader.ReadToEnd();
+
+            int headCloseIndex = original.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+            if (headCloseIndex < 0)
+            {
+                return original + importedHtml;
+            }
+
+            return original.Insert(headCloseIndex, importedHtml);
+        }
+        catch
+        {
+            return original;
+        }
     }
 }

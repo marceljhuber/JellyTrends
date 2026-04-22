@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $false)]
-    [string]$Version = "0.1.5.0",
+    [string]$Version = "0.1.6.1",
 
     [Parameter(Mandatory = $false)]
     [string]$JellyfinVersion = "10.10.7",
