@@ -1,0 +1,83 @@
+#jellytrends-root {
+    margin: 1.5rem 0 2rem;
+    padding: 0.25rem 0;
+}
+
+.jellytrends-section {
+    margin: 0 0 1.5rem;
+}
+
+.jellytrends-heading {
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin: 0 0 0.7rem;
+    letter-spacing: 0.01em;
+}
+
+.jellytrends-row {
+    display: flex;
+    gap: 0.85rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.jellytrends-card {
+    width: 170px;
+    min-width: 170px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.jellytrends-image-wrap {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.jellytrends-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+}
+
+.jellytrends-rank {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.18rem 0.42rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.jellytrends-title {
+    margin-top: 0.45rem;
+    line-height: 1.25;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.jellytrends-empty {
+    opacity: 0.8;
+    font-size: 0.95rem;
+    padding: 0.35rem 0;
+}
+
+@media (max-width: 900px) {
+    .jellytrends-card {
+        width: 140px;
+        min-width: 140px;
+    }
+
+    .jellytrends-heading {
+        font-size: 1.2rem;
+    }
+}

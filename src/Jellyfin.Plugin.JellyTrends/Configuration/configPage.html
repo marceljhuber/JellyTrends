@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JellyTrends</title>
+</head>
+<body>
+<div id="JellyTrendsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="JellyTrendsConfigForm">
+                <h2>JellyTrends Settings</h2>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="Enabled" type="checkbox" is="emby-checkbox" />
+                        <span>Enable plugin</span>
+                    </label>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="CountryCode">Country code</label>
+                    <input id="CountryCode" type="text" is="emby-input" />
+                    <div class="fieldDescription">Two-letter country for chart feed (for example: us, gb, de).</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="MovieFeedLimit">Movie feed limit</label>
+                    <input id="MovieFeedLimit" type="number" min="10" max="200" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="ShowFeedLimit">Show feed limit</label>
+                    <input id="ShowFeedLimit" type="number" min="10" max="200" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="MaxDisplayItems">Top items to show</label>
+                    <input id="MaxDisplayItems" type="number" min="1" max="25" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="CacheDurationMinutes">Cache duration (minutes)</label>
+                    <input id="CacheDurationMinutes" type="number" min="5" max="1440" is="emby-input" />
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="StrictYearMatch" type="checkbox" is="emby-checkbox" />
+                        <span>Strict year match</span>
+                    </label>
+                    <div class="fieldDescription">If enabled, title matches also require the same release year when year exists.</div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var configPage = document.querySelector('#JellyTrendsConfigPage');
+            var form = document.querySelector('#JellyTrendsConfigForm');
+            var pluginId = '5e4f95f0-df85-4ef4-a73c-30afde8be5f9';
+
+            configPage.addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    document.querySelector('#Enabled').checked = !!config.Enabled;
+                    document.querySelector('#CountryCode').value = config.CountryCode || 'us';
+                    document.querySelector('#MovieFeedLimit').value = config.MovieFeedLimit || 100;
+                    document.querySelector('#ShowFeedLimit').value = config.ShowFeedLimit || 100;
+                    document.querySelector('#MaxDisplayItems').value = config.MaxDisplayItems || 10;
+                    document.querySelector('#CacheDurationMinutes').value = config.CacheDurationMinutes || 180;
+                    document.querySelector('#StrictYearMatch').checked = !!config.StrictYearMatch;
+                }).finally(function () {
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.Enabled = document.querySelector('#Enabled').checked;
+                    config.CountryCode = (document.querySelector('#CountryCode').value || 'us').trim().toLowerCase();
+                    config.MovieFeedLimit = parseInt(document.querySelector('#MovieFeedLimit').value, 10) || 100;
+                    config.ShowFeedLimit = parseInt(document.querySelector('#ShowFeedLimit').value, 10) || 100;
+                    config.MaxDisplayItems = parseInt(document.querySelector('#MaxDisplayItems').value, 10) || 10;
+                    config.CacheDurationMinutes = parseInt(document.querySelector('#CacheDurationMinutes').value, 10) || 180;
+                    config.StrictYearMatch = document.querySelector('#StrictYearMatch').checked;
+
+                    return ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                }).finally(function () {
+                    Dashboard.hideLoadingMsg();
+                });
+
+                return false;
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>
