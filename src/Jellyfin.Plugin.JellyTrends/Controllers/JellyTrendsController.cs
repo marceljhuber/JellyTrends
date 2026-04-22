@@ -81,22 +81,38 @@ public sealed class JellyTrendsController : ControllerBase
                 return Ok(_cachedResponse);
             }
 
-            Task<List<TrendingEntry>> moviesTask = FetchFeedAsync(
-                $"https://rss.applemarketingtools.com/api/v2/{country}/movies/top-movies/{movieLimit}/movies.json",
-                cancellationToken);
+            TrendingResponse response;
 
-            Task<List<TrendingEntry>> showsTask = FetchFeedAsync(
-                $"https://rss.applemarketingtools.com/api/v2/{country}/tv-shows/top-tv-shows/{showLimit}/tv-shows.json",
-                cancellationToken);
-
-            await Task.WhenAll(moviesTask, showsTask).ConfigureAwait(false);
-
-            _cachedResponse = new TrendingResponse
+            try
             {
-                Source = "Apple Marketing RSS",
-                Movies = moviesTask.Result,
-                Shows = showsTask.Result
-            };
+                Task<List<TrendingEntry>> moviesTask = FetchFeedAsync(
+                    $"https://rss.applemarketingtools.com/api/v2/{country}/movies/top-movies/{movieLimit}/movies.json",
+                    cancellationToken);
+
+                Task<List<TrendingEntry>> showsTask = FetchFeedAsync(
+                    $"https://rss.applemarketingtools.com/api/v2/{country}/tv-shows/top-tv-shows/{showLimit}/tv-shows.json",
+                    cancellationToken);
+
+                await Task.WhenAll(moviesTask, showsTask).ConfigureAwait(false);
+
+                response = new TrendingResponse
+                {
+                    Source = "Apple Marketing RSS",
+                    Movies = moviesTask.Result,
+                    Shows = showsTask.Result
+                };
+            }
+            catch
+            {
+                response = new TrendingResponse
+                {
+                    Source = "Built-in fallback list",
+                    Movies = GetFallbackMovies(),
+                    Shows = GetFallbackShows()
+                };
+            }
+
+            _cachedResponse = response;
             _cacheKey = key;
             _cacheValidUntil = DateTimeOffset.UtcNow.AddMinutes(cacheDurationMinutes);
 
@@ -155,6 +171,50 @@ public sealed class JellyTrendsController : ControllerBase
         }
 
         return value > max ? max : value;
+    }
+
+    private static List<TrendingEntry> GetFallbackMovies()
+    {
+        string[] titles =
+        [
+            "Dune: Part Two", "Oppenheimer", "Barbie", "Poor Things", "Civil War",
+            "The Batman", "Top Gun: Maverick", "The Holdovers", "Killers of the Flower Moon", "The Iron Claw",
+            "Godzilla Minus One", "The Killer", "Napoleon", "The Beekeeper", "The Creator",
+            "Everything Everywhere All at Once", "Spider-Man: Across the Spider-Verse", "John Wick: Chapter 4", "Wonka", "The Fall Guy"
+        ];
+
+        return ToRankedEntries(titles);
+    }
+
+    private static List<TrendingEntry> GetFallbackShows()
+    {
+        string[] titles =
+        [
+            "Shogun", "Fallout", "The Last of Us", "House of the Dragon", "The Bear",
+            "The Gentlemen", "True Detective", "Severance", "The Boys", "3 Body Problem",
+            "The Penguin", "The White Lotus", "Silo", "Dark", "Breaking Bad",
+            "The Office", "Stranger Things", "The Mandalorian", "Andor", "Squid Game"
+        ];
+
+        return ToRankedEntries(titles);
+    }
+
+    private static List<TrendingEntry> ToRankedEntries(IEnumerable<string> titles)
+    {
+        List<TrendingEntry> entries = [];
+        int rank = 1;
+        foreach (string title in titles)
+        {
+            entries.Add(new TrendingEntry
+            {
+                Rank = rank,
+                Title = title,
+                Year = null
+            });
+            rank++;
+        }
+
+        return entries;
     }
 
     public sealed class ClientConfigResponse

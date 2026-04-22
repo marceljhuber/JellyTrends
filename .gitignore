@@ -7,3 +7,5 @@ obj/
 *.tmp
 artifacts/
 dist/
+.dotnet/
+dotnet-install.ps1

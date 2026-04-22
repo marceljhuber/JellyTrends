@@ -1,22 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <JellyfinVersion>10.10.7</JellyfinVersion>
+    <JellyfinNugetVersion Condition="!$(JellyfinVersion.StartsWith('10.11'))">$(JellyfinVersion)</JellyfinNugetVersion>
+    <JellyfinNugetVersion Condition="$(JellyfinVersion.StartsWith('10.11'))">$(JellyfinVersion)</JellyfinNugetVersion>
+    <TargetFramework Condition="$(JellyfinVersion.StartsWith('10.11'))">net9.0</TargetFramework>
+    <TargetFramework Condition="'$(JellyfinVersion)' == '10.10.7'">net8.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.JellyTrends</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Version>0.1.0.1</Version>
+    <Version>0.1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.10.7">
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinNugetVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="10.10.7">
+    <PackageReference Include="Jellyfin.Model" Version="$(JellyfinNugetVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Common" Version="10.10.7">
+    <PackageReference Include="Jellyfin.Common" Version="$(JellyfinNugetVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
