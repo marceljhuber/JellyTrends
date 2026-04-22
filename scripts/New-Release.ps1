@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $false)]
-    [string]$Version = "0.1.0.1",
+    [string]$Version = "0.1.5.0",
 
     [Parameter(Mandatory = $false)]
     [string]$JellyfinVersion = "10.10.7",
@@ -9,7 +9,7 @@ param(
     [string]$TargetAbi = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Owner = "YOUR_GITHUB_USER",
+    [string]$Owner = "marceljhuber",
 
     [Parameter(Mandatory = $false)]
     [string]$Repository = "JellyTrends",
@@ -61,8 +61,9 @@ else {
 $manifestEntry = @{
     guid = "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
     name = "JellyTrends"
-    overview = "Top 10 trending matches from your library"
-    description = "Fetches Top charts for movies and TV shows, compares them with your Jellyfin library, and shows ranked Top 10 matches on the home screen."
+    overview = "Netflix-style Top 10 rows based on your library"
+    description = "Builds large trending pools from free public sources, matches by IMDb/TMDB/TVDB IDs first, and shows Top 10 movie + show rows that are actually available in your Jellyfin library."
+    imageUrl = "https://raw.githubusercontent.com/$Owner/$Repository/master/assets/jellytrends-banner.png"
     owner = $Owner
     category = "General"
     versions = @(

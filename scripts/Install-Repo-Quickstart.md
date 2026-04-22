@@ -1,16 +1,23 @@
 # JellyTrends Repository Install (One Link)
 
+## For Jellyfin Users
+
+1. Open Jellyfin Dashboard -> `Plugins` -> `Repositories`.
+2. Add:
+   - Name: `JellyTrends`
+   - URL: `https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/repo/manifest.json`
+3. Refresh plugins, install JellyTrends, restart Jellyfin.
+
+## For Repository Maintainers
+
 1. Push this repository to GitHub as `https://github.com/<you>/JellyTrends`.
-2. Run:
+2. Place banner image at `assets/jellytrends-banner.png`.
+3. Run:
 
 ```powershell
-./scripts/New-Release.ps1 -Version 0.1.0.0 -Owner <you> -Repository JellyTrends
+./scripts/New-Release.ps1 -Version 0.1.5.0 -JellyfinVersion 10.11.7 -Owner <you> -Repository JellyTrends -UseRawRepoZip $true
 ```
 
-3. Create a GitHub release with tag `0.1.0.0` and upload `dist/Release-10.10.7.zip`.
-4. Commit and push `repo/manifest.json`.
-5. In Jellyfin Dashboard -> Plugins -> Repositories, add:
-   - Repository Name: `JellyTrends`
-   - Repository URL: `https://raw.githubusercontent.com/<you>/JellyTrends/main/repo/manifest.json`
+4. Commit and push `dist/Release-<version>.zip` and `repo/manifest.json`.
 
-After that, JellyTrends is installable directly from the plugin catalog.
+After that, JellyTrends is installable directly from the Jellyfin plugin catalog.

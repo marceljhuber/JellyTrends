@@ -1,7 +1,7 @@
 ﻿[{
     "name":  "JellyTrends",
     "owner":  "marceljhuber",
-    "description":  "Fetches Top charts for movies and TV shows, compares them with your Jellyfin library, and shows ranked Top 10 matches on the home screen.",
+    "description":  "Builds large trending pools from free public sources, matches by IMDb/TMDB/TVDB IDs first, and shows Top 10 movie + show rows that are actually available in your Jellyfin library.",
     "versions":  [
                      {
                          "changelog":  "Release 0.1.5.0",
@@ -16,6 +16,7 @@
                      }
                  ],
     "category":  "General",
-    "overview":  "Top 10 trending matches from your library",
+    "overview":  "Netflix-style Top 10 rows based on your library",
+    "imageUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
     "guid":  "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
 }]

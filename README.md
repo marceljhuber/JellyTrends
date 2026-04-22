@@ -1,36 +1,55 @@
 # JellyTrends
 
-JellyTrends is a Jellyfin plugin that adds two home-screen rows:
+JellyTrends adds Netflix-like trending rows to Jellyfin Home and only shows entries that exist in your own library.
 
-- Top 10 Movies in your library based on a current public Top chart.
-- Top 10 Shows in your library based on a current public Top chart.
+![JellyTrends Banner](assets/jellytrends-banner.png)
 
-The plugin fetches up to 100 movie and 100 TV entries from the Apple Marketing RSS feeds,
-matches them against local library titles, and shows ranked results with badges (`#1`, `#2`, ...).
+## What It Does
 
-## Notes
+- Adds `Top 10 Movies In Your Library` and `Top 10 Shows In Your Library` sections to the Home page.
+- Fetches large trending pools from free public sources (Cinemeta, IMDb suggestion endpoints, Apple RSS backup).
+- Prioritizes ID-based matching for better accuracy (`IMDb`, `TMDB`, `TVDB`), then falls back to title/year matching.
+- Ranks matches with clear position badges (`#1`, `#2`, ...).
+- Caches data to keep Home loading fast after the first render.
 
-- JellyTrends uses the File Transformation plugin approach to inject its web assets into `index.html`.
-- If the transform plugin is missing, the backend still runs but the home UI will not auto-inject.
+## Install (Normal Jellyfin Plugin Flow)
 
-## Build
+1. Open Jellyfin Dashboard -> `Plugins` -> `Repositories`.
+2. Add a new repository:
+   - Name: `JellyTrends`
+   - URL: `https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/repo/manifest.json`
+3. Save, refresh catalog, install `JellyTrends`, then restart Jellyfin.
+
+## Configure
+
+Open Dashboard -> Plugins -> JellyTrends and set:
+
+- Country code (`us`, `de`, `gb`, ...)
+- Feed limits for movies/shows
+- Top item count to display
+- Cache duration
+- Strict year matching
+
+## Dependencies
+
+- Requires `File Transformation` plugin for automatic web injection.
+- If File Transformation is missing, backend endpoints still work but Home rows will not auto-inject.
+
+## For Maintainers
+
+Build:
 
 ```powershell
 dotnet build JellyTrends.sln -c Release
 ```
 
-## Easy Repository Install
+Create/refresh release zip + manifest:
 
-This project already includes a Jellyfin repository manifest at `repo/manifest.json` and a release helper script.
+```powershell
+./scripts/New-Release.ps1 -Version 0.1.5.0 -JellyfinVersion 10.11.7 -Owner marceljhuber -Repository JellyTrends -UseRawRepoZip $true
+```
 
-Use this flow to make install as easy as: add repo URL -> install from catalog.
+The script updates:
 
-1. Publish this repository to GitHub.
-2. Run `./scripts/New-Release.ps1 -Version 0.1.0.0 -Owner <you> -Repository JellyTrends`.
-3. Create GitHub release `0.1.0.0` and upload `dist/Release-10.10.7.zip`.
-4. Commit/push updated `repo/manifest.json`.
-5. In Jellyfin, add repository URL:
-
-`https://raw.githubusercontent.com/<you>/JellyTrends/main/repo/manifest.json`
-
-Then install JellyTrends like any normal plugin repository entry.
+- `dist/Release-<jellyfin-version>.zip`
+- `repo/manifest.json`
