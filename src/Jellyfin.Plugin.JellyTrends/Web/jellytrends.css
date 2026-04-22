@@ -1,4 +1,6 @@
 #jellytrends-root {
+    --jt-card-scale: 1;
+    --jt-text-scale: 1;
     margin: 1.5rem 0 2rem;
     padding: 0.25rem 0;
     padding-left: 3.3%;
@@ -10,7 +12,7 @@
 }
 
 .jellytrends-heading {
-    font-size: 1.45rem;
+    font-size: calc(1.45rem * var(--jt-text-scale));
     font-weight: 700;
     margin: 0 0 0.7rem;
     letter-spacing: 0.01em;
@@ -24,8 +26,8 @@
 }
 
 .jellytrends-card {
-    width: 170px;
-    min-width: 170px;
+    width: calc(170px * var(--jt-card-scale));
+    min-width: calc(170px * var(--jt-card-scale));
     text-decoration: none;
     color: inherit;
 }
@@ -50,7 +52,7 @@
     top: 0.4rem;
     left: 0.4rem;
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--jt-text-scale));
     padding: 0.18rem 0.42rem;
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.72);
@@ -61,7 +63,7 @@
 .jellytrends-title {
     margin-top: 0.45rem;
     line-height: 1.25;
-    font-size: 0.95rem;
+    font-size: calc(0.95rem * var(--jt-text-scale));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -69,17 +71,17 @@
 
 .jellytrends-empty {
     opacity: 0.8;
-    font-size: 0.95rem;
+    font-size: calc(0.95rem * var(--jt-text-scale));
     padding: 0.35rem 0;
 }
 
 @media (max-width: 900px) {
     .jellytrends-card {
-        width: 140px;
-        min-width: 140px;
+        width: calc(140px * var(--jt-card-scale));
+        min-width: calc(140px * var(--jt-card-scale));
     }
 
     .jellytrends-heading {
-        font-size: 1.2rem;
+        font-size: calc(1.2rem * var(--jt-text-scale));
     }
 }

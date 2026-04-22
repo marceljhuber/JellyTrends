@@ -1,13 +1,11 @@
 ﻿[{
-    "name":  "JellyTrends",
     "owner":  "marceljhuber",
-    "description":  "Builds large trending pools from free public sources, matches by IMDb/TMDB/TVDB IDs first, and shows Top 10 movie + show rows that are actually available in your Jellyfin library.",
     "versions":  [
                      {
-                         "changelog":  "Release 0.1.5.0",
-                         "version":  "0.1.5.0",
-                         "checksum":  "EB853B55C4624DA39EBB13E39A5E9D09",
-                         "timestamp":  "2026-04-22T13:10:29Z",
+                         "changelog":  "Release 0.1.6.0",
+                         "version":  "0.1.6.0",
+                         "checksum":  "3796A3C7D174B30FA4E37A7A366844F0",
+                         "timestamp":  "2026-04-22T13:35:08Z",
                          "dependencies":  [
                                               "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
                                           ],
@@ -15,8 +13,10 @@
                          "sourceUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/Release-10.11.7.zip"
                      }
                  ],
-    "category":  "General",
     "overview":  "Netflix-style Top 10 rows based on your library",
-    "imageUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
-    "guid":  "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
+    "category":  "General",
+    "guid":  "5e4f95f0-df85-4ef4-a73c-30afde8be5f9",
+    "name":  "JellyTrends",
+    "description":  "Builds large trending pools from free public sources, matches by IMDb/TMDB/TVDB IDs first, and shows Top 10 movie + show rows that are actually available in your Jellyfin library.",
+    "imageUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png"
 }]

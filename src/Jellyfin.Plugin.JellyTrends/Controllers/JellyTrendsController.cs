@@ -53,8 +53,10 @@ public sealed class JellyTrendsController : ControllerBase
         return Ok(new ClientConfigResponse
         {
             Enabled = config.Enabled,
-            MaxDisplayItems = Clamp(config.MaxDisplayItems, 1, 25),
-            StrictYearMatch = config.StrictYearMatch
+            MaxDisplayItems = Clamp(config.MaxDisplayItems, 1, 100),
+            StrictYearMatch = config.StrictYearMatch,
+            CardScalePercent = Clamp(config.CardScalePercent, 60, 180),
+            TextScalePercent = Clamp(config.TextScalePercent, 70, 180)
         });
     }
 
@@ -629,6 +631,10 @@ public sealed class JellyTrendsController : ControllerBase
         public int MaxDisplayItems { get; set; }
 
         public bool StrictYearMatch { get; set; }
+
+        public int CardScalePercent { get; set; }
+
+        public int TextScalePercent { get; set; }
     }
 
     public sealed class TrendingResponse

@@ -15,7 +15,7 @@
 3. Run:
 
 ```powershell
-./scripts/New-Release.ps1 -Version 0.1.5.0 -JellyfinVersion 10.11.7 -Owner <you> -Repository JellyTrends -UseRawRepoZip $true
+./scripts/New-Release.ps1 -Version 0.1.6.0 -JellyfinVersion 10.11.7 -Owner <you> -Repository JellyTrends -UseRawRepoZip $true
 ```
 
 4. Commit and push `dist/Release-<version>.zip` and `repo/manifest.json`.

@@ -14,6 +14,10 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 
     public int MaxDisplayItems { get; set; } = 10;
 
+    public int CardScalePercent { get; set; } = 100;
+
+    public int TextScalePercent { get; set; } = 100;
+
     public int CacheDurationMinutes { get; set; } = 180;
 
     public bool StrictYearMatch { get; set; }

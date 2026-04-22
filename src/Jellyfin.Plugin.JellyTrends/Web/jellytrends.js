@@ -330,6 +330,18 @@
         homeTarget.prepend(root);
     }
 
+    function applySizing(config) {
+        var root = document.querySelector('#jellytrends-root');
+        if (!root) {
+            return;
+        }
+
+        var cardScale = Math.max(60, Math.min(180, parseInt(config.CardScalePercent, 10) || 100)) / 100;
+        var textScale = Math.max(70, Math.min(180, parseInt(config.TextScalePercent, 10) || 100)) / 100;
+        root.style.setProperty('--jt-card-scale', String(cardScale));
+        root.style.setProperty('--jt-text-scale', String(textScale));
+    }
+
     function onHome() {
         return location.hash.indexOf('#!/home') === 0 ||
             location.hash.indexOf('#/home') === 0 ||
@@ -364,7 +376,7 @@
                 return;
             }
 
-            var maxItems = Math.max(1, Math.min(25, parseInt(config.MaxDisplayItems, 10) || 10));
+            var maxItems = Math.max(1, Math.min(100, parseInt(config.MaxDisplayItems, 10) || 10));
             var strictYearMatch = !!config.StrictYearMatch;
 
             var movieLookup = buildLookup(movies);
@@ -374,6 +386,7 @@
             var showMatches = matchTrending(trending.Shows || [], showLookup, strictYearMatch, maxItems);
 
             render(movieMatches, showMatches);
+            applySizing(config);
         }).catch(function (error) {
             if (console && console.warn) {
                 console.warn('JellyTrends failed to render', error);

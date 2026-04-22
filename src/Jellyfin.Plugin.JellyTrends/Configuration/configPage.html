@@ -36,7 +36,19 @@
 
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="MaxDisplayItems">Top items to show</label>
-                    <input id="MaxDisplayItems" type="number" min="1" max="25" is="emby-input" />
+                    <input id="MaxDisplayItems" type="number" min="1" max="100" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="CardScalePercent">Card size scale (%)</label>
+                    <input id="CardScalePercent" type="number" min="60" max="180" is="emby-input" />
+                    <div class="fieldDescription">100 means default card size. Lower is smaller, higher is larger.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="TextScalePercent">Text size scale (%)</label>
+                    <input id="TextScalePercent" type="number" min="70" max="180" is="emby-input" />
+                    <div class="fieldDescription">100 means default text size for section headings and item labels.</div>
                 </div>
 
                 <div class="inputContainer">
@@ -75,6 +87,8 @@
                     document.querySelector('#MovieFeedLimit').value = config.MovieFeedLimit || 100;
                     document.querySelector('#ShowFeedLimit').value = config.ShowFeedLimit || 100;
                     document.querySelector('#MaxDisplayItems').value = config.MaxDisplayItems || 10;
+                    document.querySelector('#CardScalePercent').value = config.CardScalePercent || 100;
+                    document.querySelector('#TextScalePercent').value = config.TextScalePercent || 100;
                     document.querySelector('#CacheDurationMinutes').value = config.CacheDurationMinutes || 180;
                     document.querySelector('#StrictYearMatch').checked = !!config.StrictYearMatch;
                 }).finally(function () {
@@ -92,6 +106,8 @@
                     config.MovieFeedLimit = parseInt(document.querySelector('#MovieFeedLimit').value, 10) || 100;
                     config.ShowFeedLimit = parseInt(document.querySelector('#ShowFeedLimit').value, 10) || 100;
                     config.MaxDisplayItems = parseInt(document.querySelector('#MaxDisplayItems').value, 10) || 10;
+                    config.CardScalePercent = parseInt(document.querySelector('#CardScalePercent').value, 10) || 100;
+                    config.TextScalePercent = parseInt(document.querySelector('#TextScalePercent').value, 10) || 100;
                     config.CacheDurationMinutes = parseInt(document.querySelector('#CacheDurationMinutes').value, 10) || 180;
                     config.StrictYearMatch = document.querySelector('#StrictYearMatch').checked;
 
