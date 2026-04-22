@@ -101,6 +101,13 @@ public sealed class JellyTrendsController : ControllerBase
                 List<TrendingEntry> movies = moviesTask.Result;
                 List<TrendingEntry> shows = showsTask.Result;
 
+                Task<List<TrendingEntry>> imdbMoviesTask = FetchImdbSeededPoolAsync(false, Math.Max(movieLimit * 10, 500), cancellationToken);
+                Task<List<TrendingEntry>> imdbShowsTask = FetchImdbSeededPoolAsync(true, Math.Max(showLimit * 10, 700), cancellationToken);
+                await Task.WhenAll(imdbMoviesTask, imdbShowsTask).ConfigureAwait(false);
+
+                movies = MergeTrends(movies, imdbMoviesTask.Result);
+                shows = MergeTrends(shows, imdbShowsTask.Result);
+
                 if (movies.Count < movieLimit || shows.Count < showLimit)
                 {
                     Task<List<TrendingEntry>> appleMoviesTask = FetchCombinedFeedAsync(country, movieLimit, false, cancellationToken);
@@ -113,7 +120,7 @@ public sealed class JellyTrendsController : ControllerBase
 
                 response = new TrendingResponse
                 {
-                    Source = "Cinemeta top lists + Apple RSS backup",
+                    Source = "Cinemeta + IMDb seeded pool + Apple backup",
                     Movies = movies,
                     Shows = shows
                 };
@@ -277,6 +284,91 @@ public sealed class JellyTrendsController : ControllerBase
         }
 
         return deduped;
+    }
+
+    private static async Task<List<TrendingEntry>> FetchImdbSeededPoolAsync(bool isShow, int limit, CancellationToken cancellationToken)
+    {
+        string[] seeds =
+        [
+            "the", "star", "dark", "house", "game", "office", "friends", "lost", "love", "war",
+            "batman", "superman", "spider", "avengers", "mission", "dragon", "rings", "dune", "alien", "matrix",
+            "breaking", "better", "true", "detective", "west", "office us", "stranger", "mandalorian", "andor", "shogun",
+            "fallout", "silo", "bear", "vikings", "narcos", "severance", "penguin", "squid", "money", "crown",
+            "doctor", "sherlock", "fargo", "wire", "sopranos", "walking", "dead", "last", "us", "reacher"
+        ];
+
+        Dictionary<string, (TrendingEntry Entry, int Score)> collected = new(StringComparer.OrdinalIgnoreCase);
+        int seedWeight = 0;
+
+        foreach (string seed in seeds)
+        {
+            string firstChar = Uri.EscapeDataString(seed.Trim()[0].ToString().ToLowerInvariant());
+            string encoded = Uri.EscapeDataString(seed.Trim());
+            string url = $"https://v2.sg.media-imdb.com/suggestion/{firstChar}/{encoded}.json";
+
+            ImdbSuggestionResponse? payload;
+            try
+            {
+                using HttpRequestMessage request = new(HttpMethod.Get, url);
+                using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                payload = await JsonSerializer.DeserializeAsync<ImdbSuggestionResponse>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                seedWeight += 1000;
+                continue;
+            }
+
+            if (payload?.Results is null)
+            {
+                seedWeight += 1000;
+                continue;
+            }
+
+            foreach (ImdbSuggestionItem item in payload.Results.Where(x => IsTypeMatch(x, isShow)))
+            {
+                if (string.IsNullOrWhiteSpace(item.Id) || string.IsNullOrWhiteSpace(item.Label))
+                {
+                    continue;
+                }
+
+                TrendingEntry entry = new()
+                {
+                    Rank = 0,
+                    Title = item.Label.Trim(),
+                    Year = item.Year,
+                    ImdbId = item.Id
+                };
+
+                int rankScore = item.Rank ?? 50_000;
+                int score = seedWeight + rankScore;
+                if (!collected.TryGetValue(item.Id, out (TrendingEntry Entry, int Score) existing) || score < existing.Score)
+                {
+                    collected[item.Id] = (entry, score);
+                }
+            }
+
+            seedWeight += 1000;
+            if (collected.Count >= limit * 2)
+            {
+                break;
+            }
+        }
+
+        List<TrendingEntry> ranked = collected
+            .OrderBy(x => x.Value.Score)
+            .Take(limit)
+            .Select(x => x.Value.Entry)
+            .ToList();
+
+        for (int i = 0; i < ranked.Count; i++)
+        {
+            ranked[i].Rank = i + 1;
+        }
+
+        return ranked;
     }
 
     private static async Task<List<TrendingEntry>> FetchCinemetaPageAsync(string url, CancellationToken cancellationToken)
@@ -579,6 +671,9 @@ public sealed class JellyTrendsController : ControllerBase
 
         [System.Text.Json.Serialization.JsonPropertyName("qid")]
         public string? Qid { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("rank")]
+        public int? Rank { get; set; }
     }
 
     public sealed class AppleFeedResponse

@@ -1,7 +1,7 @@
 ---
 name: "JellyTrends"
 guid: "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
-version: "0.1.3.0"
+version: "0.1.4.0"
 targetAbi: "10.11.7.0"
 framework: "net9.0"
 overview: "Shows Top 10 trending matches from your library"

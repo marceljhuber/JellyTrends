@@ -101,19 +101,20 @@
         var byImdb = new Map();
 
         (items || []).forEach(function (item) {
-            var title = normalizeTitle(item.Name);
-            if (!title) {
-                return;
-            }
+            var variants = [item.Name, item.OriginalTitle, item.SortName]
+                .map(function (x) { return normalizeTitle(x); })
+                .filter(function (x) { return !!x; });
 
-            if (!byTitle.has(title)) {
-                byTitle.set(title, []);
-            }
-            byTitle.get(title).push(item);
+            variants.forEach(function (title) {
+                if (!byTitle.has(title)) {
+                    byTitle.set(title, []);
+                }
+                byTitle.get(title).push(item);
 
-            if (item.ProductionYear) {
-                byTitleYear.set(title + '|' + item.ProductionYear, item);
-            }
+                if (item.ProductionYear) {
+                    byTitleYear.set(title + '|' + item.ProductionYear, item);
+                }
+            });
 
             var providerIds = item.ProviderIds || {};
             var imdb = providerIds.Imdb || providerIds.imdb || providerIds.IMDB || null;
@@ -199,7 +200,7 @@
             return best;
         }
 
-        return null;
+        return candidates[0] || null;
     }
 
     function getItems(userId, includeType) {
