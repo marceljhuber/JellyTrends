@@ -160,16 +160,32 @@
     }
 
     function getItems(userId, includeType) {
-        return window.ApiClient.getItems(userId, {
+        var query = {
             Recursive: true,
             IncludeItemTypes: includeType,
             Fields: 'ProductionYear,ImageTags',
             SortBy: 'SortName',
             SortOrder: 'Ascending',
             Limit: 50000
-        }).then(function (result) {
-            return (result && result.Items) ? result.Items : [];
-        });
+        };
+
+        if (window.ApiClient && typeof window.ApiClient.getItems === 'function') {
+            return window.ApiClient.getItems(userId, query)
+                .then(function (result) {
+                    return (result && result.Items) ? result.Items : [];
+                })
+                .catch(function () {
+                    return window.ApiClient.getJSON(window.ApiClient.getUrl('Users/' + userId + '/Items', query))
+                        .then(function (result) {
+                            return (result && result.Items) ? result.Items : [];
+                        });
+                });
+        }
+
+        return window.ApiClient.getJSON(window.ApiClient.getUrl('Users/' + userId + '/Items', query))
+            .then(function (result) {
+                return (result && result.Items) ? result.Items : [];
+            });
     }
 
     function loadPluginConfig() {
@@ -181,7 +197,10 @@
     }
 
     function getHomeTarget() {
-        return document.querySelector('.homeSectionsContainer') || document.querySelector('.padded-bottom-page');
+        return document.querySelector('.homeSectionsContainer') ||
+            document.querySelector('#homePage .padded-bottom-page') ||
+            document.querySelector('.mainAnimatedPage.type-interior .padded-bottom-page') ||
+            document.querySelector('.mainAnimatedPage');
     }
 
     function render(matchesMovies, matchesShows) {
