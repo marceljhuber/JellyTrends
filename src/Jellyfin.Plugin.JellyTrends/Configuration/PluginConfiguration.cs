@@ -6,6 +6,8 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 {
     public bool Enabled { get; set; } = true;
 
+    public bool EnableExperimentalHomeInjection { get; set; }
+
     public string CountryCode { get; set; } = "us";
 
     public int MovieFeedLimit { get; set; } = 100;

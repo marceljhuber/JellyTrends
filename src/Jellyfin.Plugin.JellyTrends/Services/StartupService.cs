@@ -21,6 +21,11 @@ public sealed class StartupService : IScheduledTask
 
     public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
+        if (!Plugin.Instance.Configuration.EnableExperimentalHomeInjection)
+        {
+            return Task.CompletedTask;
+        }
+
         if (Interlocked.Exchange(ref _registrationAttempted, 1) == 1)
         {
             return Task.CompletedTask;

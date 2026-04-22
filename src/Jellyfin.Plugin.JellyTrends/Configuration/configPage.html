@@ -18,6 +18,14 @@
                     </label>
                 </div>
 
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="EnableExperimentalHomeInjection" type="checkbox" is="emby-checkbox" />
+                        <span>Enable experimental home injection</span>
+                    </label>
+                    <div class="fieldDescription">Disabled by default for safety. Enable only if you need home page rows and your client is stable.</div>
+                </div>
+
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="CountryCode">Country code</label>
                     <input id="CountryCode" type="text" is="emby-input" />
@@ -83,6 +91,7 @@
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     document.querySelector('#Enabled').checked = !!config.Enabled;
+                    document.querySelector('#EnableExperimentalHomeInjection').checked = !!config.EnableExperimentalHomeInjection;
                     document.querySelector('#CountryCode').value = config.CountryCode || 'us';
                     document.querySelector('#MovieFeedLimit').value = config.MovieFeedLimit || 100;
                     document.querySelector('#ShowFeedLimit').value = config.ShowFeedLimit || 100;
@@ -102,6 +111,7 @@
 
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.Enabled = document.querySelector('#Enabled').checked;
+                    config.EnableExperimentalHomeInjection = document.querySelector('#EnableExperimentalHomeInjection').checked;
                     config.CountryCode = (document.querySelector('#CountryCode').value || 'us').trim().toLowerCase();
                     config.MovieFeedLimit = parseInt(document.querySelector('#MovieFeedLimit').value, 10) || 100;
                     config.ShowFeedLimit = parseInt(document.querySelector('#ShowFeedLimit').value, 10) || 100;

@@ -9,7 +9,7 @@ public static class TransformationPatches
     {
         string original = payload.Contents ?? string.Empty;
 
-        if (!Plugin.Instance.Configuration.Enabled)
+        if (!Plugin.Instance.Configuration.Enabled || !Plugin.Instance.Configuration.EnableExperimentalHomeInjection)
         {
             return original;
         }
