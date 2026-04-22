@@ -98,6 +98,7 @@
     function buildLookup(items) {
         var byTitle = new Map();
         var byTitleYear = new Map();
+        var byImdb = new Map();
 
         (items || []).forEach(function (item) {
             var title = normalizeTitle(item.Name);
@@ -113,11 +114,18 @@
             if (item.ProductionYear) {
                 byTitleYear.set(title + '|' + item.ProductionYear, item);
             }
+
+            var providerIds = item.ProviderIds || {};
+            var imdb = providerIds.Imdb || providerIds.imdb || providerIds.IMDB || null;
+            if (imdb) {
+                byImdb.set(String(imdb).toLowerCase(), item);
+            }
         });
 
         return {
             byTitle: byTitle,
-            byTitleYear: byTitleYear
+            byTitleYear: byTitleYear,
+            byImdb: byImdb
         };
     }
 
@@ -136,8 +144,12 @@
             }
 
             var libraryItem = null;
+            if (entry.ImdbId) {
+                libraryItem = lookup.byImdb.get(String(entry.ImdbId).toLowerCase()) || null;
+            }
+
             if (entry.Year) {
-                libraryItem = lookup.byTitleYear.get(key + '|' + entry.Year) || null;
+                libraryItem = libraryItem || lookup.byTitleYear.get(key + '|' + entry.Year) || null;
             }
 
             if (!libraryItem && !strictYearMatch) {
@@ -163,7 +175,7 @@
         var query = {
             Recursive: true,
             IncludeItemTypes: includeType,
-            Fields: 'ProductionYear,ImageTags',
+            Fields: 'ProductionYear,ImageTags,ProviderIds',
             SortBy: 'SortName',
             SortOrder: 'Ascending',
             Limit: 50000
