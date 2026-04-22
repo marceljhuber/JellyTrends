@@ -206,7 +206,9 @@
     }
 
     function onHome() {
-        return location.hash.indexOf('#!/home') === 0;
+        return location.hash.indexOf('#!/home') === 0 ||
+            location.hash.indexOf('#/home') === 0 ||
+            location.hash.indexOf('#/home.html') === 0;
     }
 
     function run() {
