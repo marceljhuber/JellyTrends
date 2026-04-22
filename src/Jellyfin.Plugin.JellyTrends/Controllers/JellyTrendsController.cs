@@ -558,15 +558,20 @@ public sealed class JellyTrendsController : ControllerBase
 
     private static bool IsTypeMatch(ImdbSuggestionItem item, bool isShow)
     {
+        if (string.IsNullOrWhiteSpace(item.Id) || !item.Id.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         string qid = item.Qid?.ToLowerInvariant() ?? string.Empty;
         string q = item.Q?.ToLowerInvariant() ?? string.Empty;
 
         if (isShow)
         {
-            return qid.Contains("tv", StringComparison.Ordinal) || q.Contains("tv", StringComparison.Ordinal) || q.Contains("series", StringComparison.Ordinal);
+            return qid is "tvseries" or "tvminiseries";
         }
 
-        return !qid.Contains("tv", StringComparison.Ordinal) && !q.Contains("tv", StringComparison.Ordinal);
+        return qid is "movie" or "tvmovie" || q is "feature";
     }
 
     private static int Clamp(int value, int min, int max)
