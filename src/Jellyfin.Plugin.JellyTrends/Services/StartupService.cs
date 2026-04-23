@@ -9,7 +9,8 @@ namespace Jellyfin.Plugin.JellyTrends.Services;
 
 public sealed class StartupService : IScheduledTask
 {
-    private static int _registrationAttempted;
+    private static readonly object SyncLock = new();
+    private static bool _registrationSucceeded;
 
     public string Name => "JellyTrends Startup";
 
@@ -26,30 +27,45 @@ public sealed class StartupService : IScheduledTask
             return Task.CompletedTask;
         }
 
-        if (Interlocked.Exchange(ref _registrationAttempted, 1) == 1)
+        lock (SyncLock)
         {
-            return Task.CompletedTask;
+            if (_registrationSucceeded)
+            {
+                return Task.CompletedTask;
+            }
         }
 
         try
         {
-        JObject payload = new();
-        payload.Add("id", "d316d401-b0e6-4618-95a0-ba897f59547f");
-        payload.Add("fileNamePattern", "index.html");
-        payload.Add("callbackAssembly", GetType().Assembly.FullName);
-        payload.Add("callbackClass", typeof(TransformationPatches).FullName);
-        payload.Add("callbackMethod", nameof(TransformationPatches.IndexHtml));
+            JObject payload = new();
+            payload.Add("id", "d316d401-b0e6-4618-95a0-ba897f59547f");
+            payload.Add("fileNamePattern", "index.html");
+            payload.Add("callbackAssembly", GetType().Assembly.FullName);
+            payload.Add("callbackClass", typeof(TransformationPatches).FullName);
+            payload.Add("callbackMethod", nameof(TransformationPatches.IndexHtml));
 
-        Assembly? fileTransformationAssembly = AssemblyLoadContext.All
-            .SelectMany(x => x.Assemblies)
-            .FirstOrDefault(x => x.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
+            Assembly? fileTransformationAssembly = AssemblyLoadContext.All
+                .SelectMany(x => x.Assemblies)
+                .FirstOrDefault(x => x.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
 
-        Type? pluginInterfaceType = fileTransformationAssembly?.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
-        pluginInterfaceType?.GetMethod("RegisterTransformation")?.Invoke(null, [payload]);
+            Type? pluginInterfaceType = fileTransformationAssembly?.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
+            MethodInfo? registerMethod = pluginInterfaceType?.GetMethod("RegisterTransformation");
+            if (registerMethod is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            registerMethod.Invoke(null, [payload]);
+
+            lock (SyncLock)
+            {
+                _registrationSucceeded = true;
+            }
         }
         catch
         {
             // Do not block server startup if transformation registration fails.
+            // Keep retrying on future task runs until registration succeeds.
         }
 
         return Task.CompletedTask;
