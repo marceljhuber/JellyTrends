@@ -3,4 +3,4 @@ using System.Reflection;
 [assembly: AssemblyCompany("Local")]
 [assembly: AssemblyProduct("Jellyfin.Plugin.JellyTrends")]
 [assembly: AssemblyTitle("Jellyfin.Plugin.JellyTrends")]
-[assembly: AssemblyVersion("0.1.7.2")]
+[assembly: AssemblyVersion("0.1.7.3")]

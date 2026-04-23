@@ -117,8 +117,10 @@
         var byImdb = new Map();
         var byTmdb = new Map();
         var byTvdb = new Map();
+        var allItems = [];
 
         (items || []).forEach(function (item) {
+            allItems.push(item);
             var variants = [item.Name, item.OriginalTitle, item.SortName]
                 .map(function (x) { return normalizeTitle(x); })
                 .filter(function (x) { return !!x; });
@@ -154,8 +156,66 @@
             byTitleYear: byTitleYear,
             byImdb: byImdb,
             byTmdb: byTmdb,
-            byTvdb: byTvdb
+            byTvdb: byTvdb,
+            allItems: allItems
         };
+    }
+
+    function fuzzyFindCandidate(entry, lookup, used) {
+        var key = normalizeTitle(entry.Title);
+        if (!key) {
+            return null;
+        }
+
+        var keyWords = key.split(' ').filter(function (w) { return w.length > 2; });
+        if (!keyWords.length) {
+            return null;
+        }
+
+        var best = null;
+        var bestScore = 0;
+        (lookup.allItems || []).forEach(function (item) {
+            if (!item || used.has(item.Id)) {
+                return;
+            }
+
+            var variants = [item.Name, item.OriginalTitle, item.SortName]
+                .map(function (x) { return normalizeTitle(x); })
+                .filter(function (x) { return !!x; });
+
+            var localBest = 0;
+            variants.forEach(function (v) {
+                if (v === key) {
+                    localBest = Math.max(localBest, 100);
+                    return;
+                }
+
+                if (v.indexOf(key) >= 0 || key.indexOf(v) >= 0) {
+                    localBest = Math.max(localBest, 70);
+                }
+
+                var matchWords = keyWords.filter(function (w) { return v.indexOf(w) >= 0; }).length;
+                if (matchWords >= 2) {
+                    localBest = Math.max(localBest, 45 + (matchWords * 8));
+                }
+            });
+
+            if (entry.Year && item.ProductionYear) {
+                var diff = Math.abs(parseInt(entry.Year, 10) - parseInt(item.ProductionYear, 10));
+                if (diff <= 1) {
+                    localBest += 12;
+                } else if (diff > 6) {
+                    localBest -= 10;
+                }
+            }
+
+            if (localBest > bestScore) {
+                bestScore = localBest;
+                best = item;
+            }
+        });
+
+        return bestScore >= 62 ? best : null;
     }
 
     function matchTrending(trending, lookup, strictYearMatch, maxItems) {
@@ -190,6 +250,10 @@
             if (!libraryItem && !strictYearMatch) {
                 var candidates = lookup.byTitle.get(key) || [];
                 libraryItem = selectBestCandidate(candidates, entry.Year);
+            }
+
+            if (!libraryItem) {
+                libraryItem = fuzzyFindCandidate(entry, lookup, used);
             }
 
             if (!libraryItem || used.has(libraryItem.Id)) {
@@ -415,6 +479,11 @@
 
             var movieMatches = matchTrending(trending.Movies || [], movieLookup, strictYearMatch, maxItems);
             var showMatches = matchTrending(trending.Shows || [], showLookup, strictYearMatch, maxItems);
+
+            if (strictYearMatch && movieMatches.length === 0 && showMatches.length === 0) {
+                movieMatches = matchTrending(trending.Movies || [], movieLookup, false, maxItems);
+                showMatches = matchTrending(trending.Shows || [], showLookup, false, maxItems);
+            }
 
             render(movieMatches, showMatches);
             applySizing(config);

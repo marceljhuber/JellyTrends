@@ -50,7 +50,7 @@ dotnet build JellyTrends.sln -c Release
 Create/refresh release zip + manifest:
 
 ```powershell
-./scripts/New-Release.ps1 -Version 0.1.7.2 -JellyfinVersion 10.11.7 -Owner marceljhuber -Repository JellyTrends -UseRawRepoZip $true
+./scripts/New-Release.ps1 -Version 0.1.7.3 -JellyfinVersion 10.11.7 -Owner marceljhuber -Repository JellyTrends -UseRawRepoZip $true
 ```
 
 The script updates:
