@@ -51,7 +51,13 @@
     function createCard(item, rank) {
         var card = document.createElement('a');
         card.className = 'jellytrends-card';
-        card.href = '#!/details?id=' + encodeURIComponent(item.Id);
+        card.href = '#/details?id=' + encodeURIComponent(item.Id);
+        card.addEventListener('click', function (event) {
+            if (window.Dashboard && typeof window.Dashboard.navigate === 'function') {
+                event.preventDefault();
+                window.Dashboard.navigate('details?id=' + encodeURIComponent(item.Id));
+            }
+        });
 
         var imageWrap = document.createElement('div');
         imageWrap.className = 'jellytrends-image-wrap';
