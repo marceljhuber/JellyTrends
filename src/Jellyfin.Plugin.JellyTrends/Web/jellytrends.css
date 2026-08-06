@@ -22,7 +22,10 @@
     display: flex;
     gap: 0.85rem;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
 }
 
 .jellytrends-card {
@@ -45,6 +48,17 @@
     width: 100%;
     aspect-ratio: 2 / 3;
     object-fit: cover;
+}
+
+.jellytrends-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: calc(0.85rem * var(--jt-text-scale));
+    opacity: 0.75;
+    overflow: hidden;
 }
 
 .jellytrends-rank {

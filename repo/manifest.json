@@ -2,21 +2,21 @@
     "owner":  "marceljhuber",
     "versions":  [
                      {
-                         "changelog":  "Release 0.1.7.3",
-                         "version":  "0.1.7.3",
-                         "checksum":  "0DD290947DEBDCCB5B8AAA35E899FE69",
-                         "timestamp":  "2026-04-23T17:45:39Z",
+                         "changelog":  "Release 0.2.0.0",
+                         "version":  "0.2.0.0",
+                         "checksum":  "8E5BAC98D244CD7C315BB6BCECD7B12A",
+                         "timestamp":  "2026-08-06T00:51:04Z",
                          "dependencies":  [
                                               "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
                                           ],
-                         "targetAbi":  "10.11.7.0",
-                         "sourceUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/Release-10.11.7.zip"
+                         "targetAbi":  "10.11.0.0",
+                         "sourceUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/Release-10.11.11.zip"
                      }
                  ],
-    "overview":  "Netflix-style Top 10 rows based on your library",
+    "overview":  "Netflix-style trending rows built from your own library",
     "category":  "General",
     "guid":  "5e4f95f0-df85-4ef4-a73c-30afde8be5f9",
     "name":  "JellyTrends",
-    "description":  "Builds large trending pools from free public sources, matches by IMDb/TMDB/TVDB IDs first, and shows Top 10 movie + show rows that are actually available in your Jellyfin library.",
+    "description":  "Pulls trending movie and show charts from TMDB, Trakt or the keyless Cinemeta catalog, matches them against your library by IMDb/TMDB/TVDB id, and renders Top N rows that keep each title\u0027s real online chart position. Row size is configurable. Works on Jellyfin Web, the Android and iOS apps, and Jellyfin Media Player.",
     "imageUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png"
 }]

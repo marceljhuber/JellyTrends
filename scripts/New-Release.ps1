@@ -1,9 +1,9 @@
 param(
     [Parameter(Mandatory = $false)]
-    [string]$Version = "0.1.7.3",
+    [string]$Version = "0.2.0.0",
 
     [Parameter(Mandatory = $false)]
-    [string]$JellyfinVersion = "10.10.7",
+    [string]$JellyfinVersion = "10.11.11",
 
     [Parameter(Mandatory = $false)]
     [string]$TargetAbi = "",
@@ -30,7 +30,10 @@ $manifestPath = Join-Path $root "repo/manifest.json"
 $framework = if ($JellyfinVersion.StartsWith("10.11")) { "net9.0" } else { "net8.0" }
 
 if ([string]::IsNullOrWhiteSpace($TargetAbi)) {
-    $TargetAbi = "$JellyfinVersion.0"
+    # Target the first release of the minor line so the plugin installs on every patch
+    # release of it, not just on the exact version it was compiled against.
+    $abiParts = $JellyfinVersion.Split(".")
+    $TargetAbi = "$($abiParts[0]).$($abiParts[1]).0.0"
 }
 
 if (!(Test-Path $publishRoot)) { New-Item -Path $publishRoot -ItemType Directory | Out-Null }
@@ -61,8 +64,8 @@ else {
 $manifestEntry = @{
     guid = "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
     name = "JellyTrends"
-    overview = "Netflix-style Top 10 rows based on your library"
-    description = "Builds large trending pools from free public sources, matches by IMDb/TMDB/TVDB IDs first, and shows Top 10 movie + show rows that are actually available in your Jellyfin library."
+    overview = "Netflix-style trending rows built from your own library"
+    description = "Pulls trending movie and show charts from TMDB, Trakt or the keyless Cinemeta catalog, matches them against your library by IMDb/TMDB/TVDB id, and renders Top N rows that keep each title's real online chart position. Row size is configurable. Works on Jellyfin Web, the Android and iOS apps, and Jellyfin Media Player."
     imageUrl = "https://raw.githubusercontent.com/$Owner/$Repository/master/assets/jellytrends-banner.png"
     owner = $Owner
     category = "General"

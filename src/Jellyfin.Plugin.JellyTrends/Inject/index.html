@@ -1,3 +1,20 @@
-<!-- JellyTrends Inject -->
-<link rel="stylesheet" href="/JellyTrends/assets/jellytrends.css" />
-<script defer src="/JellyTrends/assets/jellytrends.js"></script>
+<!-- JellyTrends bootstrap -->
+<script>
+    (function () {
+        // Resolve the server root so the plugin also works when Jellyfin is hosted under a
+        // reverse-proxy sub path such as https://example.com/jellyfin/web/index.html.
+        var path = window.location.pathname || '';
+        var index = path.toLowerCase().lastIndexOf('/web/');
+        var base = index >= 0 ? path.slice(0, index) : '';
+
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = base + '/JellyTrends/assets/jellytrends.css';
+        document.head.appendChild(css);
+
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = base + '/JellyTrends/assets/jellytrends.js';
+        document.head.appendChild(script);
+    })();
+</script>

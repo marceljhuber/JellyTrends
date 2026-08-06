@@ -9,14 +9,14 @@ public static class TransformationPatches
     {
         string original = payload.Contents ?? string.Empty;
 
-        if (!Plugin.Instance.Configuration.Enabled || !Plugin.Instance.Configuration.EnableExperimentalHomeInjection)
+        if (!Plugin.Instance.Configuration.Enabled || !Plugin.Instance.Configuration.EnableHomeRows)
         {
             return original;
         }
 
         try
         {
-            if (original.Contains("/JellyTrends/assets/jellytrends.js", StringComparison.OrdinalIgnoreCase))
+            if (original.Contains("JellyTrends bootstrap", StringComparison.OrdinalIgnoreCase))
             {
                 return original;
             }

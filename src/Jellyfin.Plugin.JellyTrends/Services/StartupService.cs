@@ -22,7 +22,7 @@ public sealed class StartupService : IScheduledTask
 
     public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        if (!Plugin.Instance.Configuration.EnableExperimentalHomeInjection)
+        if (!Plugin.Instance.Configuration.EnableHomeRows)
         {
             return Task.CompletedTask;
         }

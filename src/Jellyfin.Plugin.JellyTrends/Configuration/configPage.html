@@ -5,11 +5,11 @@
     <title>JellyTrends</title>
 </head>
 <body>
-<div id="JellyTrendsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+<div id="JellyTrendsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
     <div data-role="content">
         <div class="content-primary">
             <form id="JellyTrendsConfigForm">
-                <h2>JellyTrends Settings</h2>
+                <h2>JellyTrends</h2>
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
@@ -20,48 +20,111 @@
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="EnableExperimentalHomeInjection" type="checkbox" is="emby-checkbox" />
-                        <span>Enable experimental home injection</span>
+                        <input id="EnableHomeRows" type="checkbox" is="emby-checkbox" />
+                        <span>Show trending rows on Home</span>
                     </label>
-                    <div class="fieldDescription">Disabled by default for safety. Enable only if you need home page rows and your client is stable.</div>
+                    <div class="fieldDescription">
+                        Requires the File Transformation plugin. Covers Jellyfin Web, the Android and iOS
+                        apps, and Jellyfin Media Player on Windows, macOS and Linux. Restart Jellyfin after
+                        turning this on.
+                    </div>
+                </div>
+
+                <h3>Trending source</h3>
+
+                <div class="selectContainer">
+                    <label class="selectLabel" for="TrendingSource">Source</label>
+                    <select id="TrendingSource" is="emby-select">
+                        <option value="auto">Automatic (best available)</option>
+                        <option value="tmdb">TMDB</option>
+                        <option value="trakt">Trakt</option>
+                        <option value="cinemeta">Cinemeta (no key required)</option>
+                    </select>
+                    <div class="fieldDescription">
+                        Automatic prefers TMDB, then Trakt, then falls back to Cinemeta. Cinemeta needs no
+                        credentials but ranks by general popularity rather than by what is trending this week.
+                    </div>
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="CountryCode">Country code</label>
-                    <input id="CountryCode" type="text" is="emby-input" />
-                    <div class="fieldDescription">Two-letter country for chart feed (for example: us, gb, de).</div>
+                    <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">TMDB API key (optional)</label>
+                    <input id="TmdbApiKey" type="text" is="emby-input" autocomplete="off" />
+                    <div class="fieldDescription">
+                        Free from themoviedb.org under Settings &rarr; API. Unlocks the real
+                        <em>Trending this week</em> charts.
+                    </div>
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="MovieFeedLimit">Movie feed limit</label>
-                    <input id="MovieFeedLimit" type="number" min="10" max="200" is="emby-input" />
+                    <label class="inputLabel inputLabelUnfocused" for="TraktClientId">Trakt Client ID (optional)</label>
+                    <input id="TraktClientId" type="text" is="emby-input" autocomplete="off" />
+                    <div class="fieldDescription">
+                        Free from trakt.tv/oauth/applications. Ranks by how many people are watching right now.
+                    </div>
                 </div>
 
-                <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="ShowFeedLimit">Show feed limit</label>
-                    <input id="ShowFeedLimit" type="number" min="10" max="200" is="emby-input" />
+                <div class="selectContainer">
+                    <label class="selectLabel" for="TrendingWindow">Trending window</label>
+                    <select id="TrendingWindow" is="emby-select">
+                        <option value="week">This week</option>
+                        <option value="day">Today</option>
+                    </select>
+                    <div class="fieldDescription">Used by TMDB. Other sources publish a single chart.</div>
                 </div>
 
+                <div>
+                    <button id="TestSource" is="emby-button" type="button" class="raised block emby-button">
+                        <span>Test source</span>
+                    </button>
+                    <div id="TestResult" class="fieldDescription"></div>
+                </div>
+
+                <h3>Display</h3>
+
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="MaxDisplayItems">Top items to show</label>
-                    <input id="MaxDisplayItems" type="number" min="1" max="100" is="emby-input" />
+                    <label class="inputLabel inputLabelUnfocused" for="MaxDisplayItems">Titles per row</label>
+                    <input id="MaxDisplayItems" type="number" min="1" max="50" is="emby-input" />
+                    <div class="fieldDescription">
+                        How many titles each row shows. 10 gives the classic Top 10 look; the row headings
+                        follow this number automatically.
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="ShowOnlineRank" type="checkbox" is="emby-checkbox" />
+                        <span>Show the online chart position</span>
+                    </label>
+                    <div class="fieldDescription">
+                        On: a title sitting at #37 online keeps the #37 badge even when it is the third one
+                        you own. Off: badges are renumbered 1..N.
+                    </div>
                 </div>
 
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="CardScalePercent">Card size scale (%)</label>
                     <input id="CardScalePercent" type="number" min="60" max="180" is="emby-input" />
-                    <div class="fieldDescription">100 means default card size. Lower is smaller, higher is larger.</div>
                 </div>
 
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="TextScalePercent">Text size scale (%)</label>
                     <input id="TextScalePercent" type="number" min="70" max="180" is="emby-input" />
-                    <div class="fieldDescription">100 means default text size for section headings and item labels.</div>
+                </div>
+
+                <h3>Matching</h3>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="MovieFeedLimit">Movie chart depth</label>
+                    <input id="MovieFeedLimit" type="number" min="10" max="500" is="emby-input" />
+                    <div class="fieldDescription">
+                        How far down the online chart to look for titles you own. Raise this if a row comes
+                        up short on a small library.
+                    </div>
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="CacheDurationMinutes">Cache duration (minutes)</label>
-                    <input id="CacheDurationMinutes" type="number" min="5" max="1440" is="emby-input" />
+                    <label class="inputLabel inputLabelUnfocused" for="ShowFeedLimit">Show chart depth</label>
+                    <input id="ShowFeedLimit" type="number" min="10" max="500" is="emby-input" />
                 </div>
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
@@ -69,7 +132,15 @@
                         <input id="StrictYearMatch" type="checkbox" is="emby-checkbox" />
                         <span>Strict year match</span>
                     </label>
-                    <div class="fieldDescription">If enabled, title matches also require the same release year when year exists.</div>
+                    <div class="fieldDescription">
+                        Only fall back to title matching when the release year also matches. Provider ID
+                        matches (IMDb, TMDB, TVDB) are always used first and ignore this setting.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="CacheDurationMinutes">Cache duration (minutes)</label>
+                    <input id="CacheDurationMinutes" type="number" min="5" max="1440" is="emby-input" />
                 </div>
 
                 <div>
@@ -87,21 +158,63 @@
             var form = document.querySelector('#JellyTrendsConfigForm');
             var pluginId = '5e4f95f0-df85-4ef4-a73c-30afde8be5f9';
 
+            function value(id) {
+                return document.querySelector('#' + id).value;
+            }
+
+            function number(id, fallback) {
+                var parsed = parseInt(value(id), 10);
+                return isNaN(parsed) ? fallback : parsed;
+            }
+
+            function checked(id) {
+                return document.querySelector('#' + id).checked;
+            }
+
+            function set(id, val) {
+                document.querySelector('#' + id).value = val;
+            }
+
+            function check(id, val) {
+                document.querySelector('#' + id).checked = !!val;
+            }
+
             configPage.addEventListener('pageshow', function () {
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    document.querySelector('#Enabled').checked = !!config.Enabled;
-                    document.querySelector('#EnableExperimentalHomeInjection').checked = !!config.EnableExperimentalHomeInjection;
-                    document.querySelector('#CountryCode').value = config.CountryCode || 'us';
-                    document.querySelector('#MovieFeedLimit').value = config.MovieFeedLimit || 100;
-                    document.querySelector('#ShowFeedLimit').value = config.ShowFeedLimit || 100;
-                    document.querySelector('#MaxDisplayItems').value = config.MaxDisplayItems || 10;
-                    document.querySelector('#CardScalePercent').value = config.CardScalePercent || 100;
-                    document.querySelector('#TextScalePercent').value = config.TextScalePercent || 100;
-                    document.querySelector('#CacheDurationMinutes').value = config.CacheDurationMinutes || 180;
-                    document.querySelector('#StrictYearMatch').checked = !!config.StrictYearMatch;
+                    check('Enabled', config.Enabled);
+                    check('EnableHomeRows', config.EnableHomeRows);
+                    set('TrendingSource', config.TrendingSource || 'auto');
+                    set('TmdbApiKey', config.TmdbApiKey || '');
+                    set('TraktClientId', config.TraktClientId || '');
+                    set('TrendingWindow', config.TrendingWindow || 'week');
+                    set('MaxDisplayItems', config.MaxDisplayItems || 10);
+                    check('ShowOnlineRank', config.ShowOnlineRank);
+                    set('CardScalePercent', config.CardScalePercent || 100);
+                    set('TextScalePercent', config.TextScalePercent || 100);
+                    set('MovieFeedLimit', config.MovieFeedLimit || 100);
+                    set('ShowFeedLimit', config.ShowFeedLimit || 100);
+                    check('StrictYearMatch', config.StrictYearMatch);
+                    set('CacheDurationMinutes', config.CacheDurationMinutes || 180);
                 }).finally(function () {
                     Dashboard.hideLoadingMsg();
+                });
+            });
+
+            document.querySelector('#TestSource').addEventListener('click', function () {
+                var output = document.querySelector('#TestResult');
+                output.textContent = 'Testing...';
+
+                ApiClient.ajax({
+                    type: 'POST',
+                    url: ApiClient.getUrl('JellyTrends/test'),
+                    dataType: 'json'
+                }).then(function (result) {
+                    output.textContent = 'Source: ' + result.Source +
+                        ' | movies: ' + result.MovieCount + (result.TopMovie ? ' (#1 ' + result.TopMovie + ')' : '') +
+                        ' | shows: ' + result.ShowCount + (result.TopShow ? ' (#1 ' + result.TopShow + ')' : '');
+                }).catch(function () {
+                    output.textContent = 'Test failed. Save your settings first, then try again.';
                 });
             });
 
@@ -110,16 +223,20 @@
                 Dashboard.showLoadingMsg();
 
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    config.Enabled = document.querySelector('#Enabled').checked;
-                    config.EnableExperimentalHomeInjection = document.querySelector('#EnableExperimentalHomeInjection').checked;
-                    config.CountryCode = (document.querySelector('#CountryCode').value || 'us').trim().toLowerCase();
-                    config.MovieFeedLimit = parseInt(document.querySelector('#MovieFeedLimit').value, 10) || 100;
-                    config.ShowFeedLimit = parseInt(document.querySelector('#ShowFeedLimit').value, 10) || 100;
-                    config.MaxDisplayItems = parseInt(document.querySelector('#MaxDisplayItems').value, 10) || 10;
-                    config.CardScalePercent = parseInt(document.querySelector('#CardScalePercent').value, 10) || 100;
-                    config.TextScalePercent = parseInt(document.querySelector('#TextScalePercent').value, 10) || 100;
-                    config.CacheDurationMinutes = parseInt(document.querySelector('#CacheDurationMinutes').value, 10) || 180;
-                    config.StrictYearMatch = document.querySelector('#StrictYearMatch').checked;
+                    config.Enabled = checked('Enabled');
+                    config.EnableHomeRows = checked('EnableHomeRows');
+                    config.TrendingSource = value('TrendingSource') || 'auto';
+                    config.TmdbApiKey = (value('TmdbApiKey') || '').trim();
+                    config.TraktClientId = (value('TraktClientId') || '').trim();
+                    config.TrendingWindow = value('TrendingWindow') || 'week';
+                    config.MaxDisplayItems = number('MaxDisplayItems', 10);
+                    config.ShowOnlineRank = checked('ShowOnlineRank');
+                    config.CardScalePercent = number('CardScalePercent', 100);
+                    config.TextScalePercent = number('TextScalePercent', 100);
+                    config.MovieFeedLimit = number('MovieFeedLimit', 100);
+                    config.ShowFeedLimit = number('ShowFeedLimit', 100);
+                    config.StrictYearMatch = checked('StrictYearMatch');
+                    config.CacheDurationMinutes = number('CacheDurationMinutes', 180);
 
                     return ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);
