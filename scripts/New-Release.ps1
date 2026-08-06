@@ -86,7 +86,9 @@ $manifestEntry = @{
 
 Write-Host "Writing manifest..."
 $manifestJson = "[" + ($manifestEntry | ConvertTo-Json -Depth 8) + "]"
-$manifestJson | Set-Content -Path $manifestPath -Encoding UTF8
+# Set-Content -Encoding UTF8 prepends a BOM on Windows PowerShell; write it out without one
+# so any JSON reader can consume the manifest.
+[System.IO.File]::WriteAllText($manifestPath, $manifestJson, (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host "Done"
 Write-Host "Zip: $zipPath"
