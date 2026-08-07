@@ -1,7 +1,7 @@
 ---
 name: "JellyTrends"
 guid: "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
-version: "0.2.0.1"
+version: "0.2.1.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "Netflix-style trending rows built from your own library"
@@ -16,5 +16,5 @@ owner: "marceljhuber"
 artifacts:
 - "Jellyfin.Plugin.JellyTrends.dll"
 changelog: >
-  Rebuilt the trending pipeline on TMDB/Trakt/Cinemeta providers, retargeted
-  to Jellyfin 10.11, and fixed row placement alongside hero plugins.
+  Moved chart-to-library matching onto the server, cut the home render to a
+  single request, and restyled the rows to match native Jellyfin sections.

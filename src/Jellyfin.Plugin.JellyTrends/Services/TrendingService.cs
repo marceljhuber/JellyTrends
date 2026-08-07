@@ -262,7 +262,11 @@ public static class TrendingService
             ? request => request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey)
             : null;
 
-        for (int page = 1; entries.Count < limit && page <= 25; page++)
+        // TMDB serves 20 per page. The page count is known up front, so they are fetched
+        // concurrently instead of paying one round trip per page.
+        int pageCount = Math.Min(25, ((limit - 1) / 20) + 1);
+        Task<TmdbPage?>[] pages = new Task<TmdbPage?>[pageCount];
+        for (int page = 1; page <= pageCount; page++)
         {
             string query = $"page={page.ToString(CultureInfo.InvariantCulture)}";
             if (!isReadAccessToken)
@@ -270,8 +274,14 @@ public static class TrendingService
                 query += $"&api_key={Uri.EscapeDataString(apiKey)}";
             }
 
-            string url = $"{TmdbBaseUrl}/trending/{kind}/{window}?{query}";
-            TmdbPage? payload = await GetJsonAsync<TmdbPage>(url, authorize, cancellationToken).ConfigureAwait(false);
+            pages[page - 1] = GetJsonOrNullAsync<TmdbPage>($"{TmdbBaseUrl}/trending/{kind}/{window}?{query}", authorize, cancellationToken);
+        }
+
+        TmdbPage?[] results = await Task.WhenAll(pages).ConfigureAwait(false);
+
+        foreach (TmdbPage? payload in results)
+        {
+            // Stop at the first gap so chart positions stay in order.
             if (payload?.Results is null || payload.Results.Count == 0)
             {
                 break;
@@ -292,11 +302,13 @@ public static class TrendingService
                     TmdbId = item.Id > 0 ? item.Id.ToString(CultureInfo.InvariantCulture) : null
                 });
             }
+        }
 
-            if (payload.TotalPages > 0 && page >= payload.TotalPages)
-            {
-                break;
-            }
+        if (entries.Count == 0)
+        {
+            // Nothing came back at all, which means the credential or the endpoint is bad.
+            // Surface it so the provider chain moves on to the next source.
+            throw new InvalidOperationException("TMDB returned no usable trending entries.");
         }
 
         return Finalize(entries, limit);
@@ -357,13 +369,24 @@ public static class TrendingService
         string type = isShow ? "series" : "movie";
         List<TrendingEntry> entries = [];
 
-        for (int skip = 0; entries.Count < limit && skip <= 1000; skip += CinemetaPageSize)
+        // Page offsets are known from the requested depth, so the pages are fetched together.
+        int pageCount = Math.Min(21, ((limit - 1) / CinemetaPageSize) + 1);
+        Task<CinemetaResponse?>[] pages = new Task<CinemetaResponse?>[pageCount];
+        for (int page = 0; page < pageCount; page++)
         {
+            int skip = page * CinemetaPageSize;
             string url = skip == 0
                 ? $"{CinemetaBaseUrl}/catalog/{type}/top.json"
                 : $"{CinemetaBaseUrl}/catalog/{type}/top/skip={skip.ToString(CultureInfo.InvariantCulture)}.json";
 
-            CinemetaResponse? payload = await GetJsonAsync<CinemetaResponse>(url, null, cancellationToken).ConfigureAwait(false);
+            pages[page] = GetJsonOrNullAsync<CinemetaResponse>(url, null, cancellationToken);
+        }
+
+        CinemetaResponse?[] results = await Task.WhenAll(pages).ConfigureAwait(false);
+
+        foreach (CinemetaResponse? payload in results)
+        {
+            // Stop at the first gap so chart positions stay in order.
             if (payload?.Metas is null || payload.Metas.Count == 0)
             {
                 break;
@@ -389,6 +412,30 @@ public static class TrendingService
         }
 
         return Finalize(entries, limit);
+    }
+
+    /// <summary>
+    /// Fetches a page, returning null instead of throwing when it fails.
+    /// </summary>
+    /// <remarks>
+    /// Pages are requested concurrently, so a single bad page must not take the whole chart
+    /// down with it. Callers stop at the first null to keep chart positions contiguous.
+    /// </remarks>
+    private static async Task<T?> GetJsonOrNullAsync<T>(string url, Action<HttpRequestMessage>? configureRequest, CancellationToken cancellationToken)
+        where T : class
+    {
+        try
+        {
+            return await GetJsonAsync<T>(url, configureRequest, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static async Task<T?> GetJsonAsync<T>(string url, Action<HttpRequestMessage>? configureRequest, CancellationToken cancellationToken)

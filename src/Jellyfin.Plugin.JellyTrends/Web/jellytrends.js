@@ -5,55 +5,26 @@
     window.JellyTrendsInit = true;
 
     var ROOT_ID = 'jellytrends-root';
-    var TRENDING_CACHE_MS = 5 * 60 * 1000;
-    var LIBRARY_CACHE_MS = 15 * 60 * 1000;
+    var ROWS_CACHE_MS = 5 * 60 * 1000;
 
     var state = {
         busy: false,
         mounting: false,
         runId: 0,
         ensureTimer: null,
-        config: null,
-        rendered: null,
-        trendingCache: null,
-        trendingCacheAt: 0,
-        libraryCache: {},
-        libraryCacheAt: {}
+        observer: null,
+        observedNode: null,
+        rows: null,
+        rowsAt: 0
     };
-
-    function normalizeTitle(name) {
-        return (name || '')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/&/g, ' and ')
-            .replace(/[^a-z0-9 ]/g, ' ')
-            .replace(/\b(the|a|an)\b/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
 
     function apiClient() {
         return window.ApiClient || null;
     }
 
-    function getCurrentUserId() {
-        var client = apiClient();
-        if (!client) {
-            return null;
-        }
-        if (typeof client.getCurrentUserId === 'function') {
-            return client.getCurrentUserId();
-        }
-        if (client._serverInfo && client._serverInfo.UserId) {
-            return client._serverInfo.UserId;
-        }
-        return null;
-    }
-
     /**
-     * The home route is '#/home' on Jellyfin 10.11 but older builds and some wrappers
-     * still use the '#!/' prefix or the legacy '.html' suffix.
+     * The home route is '#/home' on Jellyfin 10.11. Older builds and some app wrappers still
+     * use the '#!/' prefix, so it is normalised before comparing.
      */
     function onHome() {
         var hash = (location.hash || '').replace('#!', '#');
@@ -71,12 +42,11 @@
     /**
      * The rows mount inside the home sections container, as its first child.
      *
-     * They must live inside it rather than beside it: theme and hero plugins such as
-     * Media Bar offset '.homeSectionsContainer' (top: 65vh) to clear a full-bleed
-     * slideshow, and anything mounted outside that container misses the offset and ends
-     * up hidden underneath the slideshow. Jellyfin rewrites this container's innerHTML
-     * whenever home sections reload, which drops the rows; the MutationObserver in init()
-     * re-attaches them from cache.
+     * They must live inside it rather than beside it: hero plugins such as Media Bar offset
+     * '.homeSectionsContainer' (top: 65vh) to clear a full-bleed slideshow, and anything
+     * mounted outside that container misses the offset and ends up hidden underneath the
+     * slideshow. Jellyfin rewrites this container's innerHTML whenever home sections reload,
+     * which drops the rows; the observer re-attaches them from cache.
      */
     function getMountTarget() {
         return document.querySelector('#homeTab .homeSectionsContainer') ||
@@ -96,263 +66,101 @@
         }
     }
 
-    function getImageUrl(item) {
+    function detailsHref(itemId) {
         var client = apiClient();
-        var tag = item.ImageTags && item.ImageTags.Primary;
-
-        if (client && typeof client.getImageUrl === 'function' && tag) {
-            return client.getImageUrl(item.Id, {
-                type: 'Primary',
-                maxWidth: 300,
-                quality: 90,
-                tag: tag
-            });
-        }
-
-        return null;
+        // Jellyfin's own cards always carry serverId. Without it the details route cannot
+        // resolve which server the item belongs to and navigation lands nowhere.
+        var serverId = client && typeof client.serverId === 'function' ? client.serverId() : null;
+        var href = '#/details?id=' + encodeURIComponent(itemId);
+        return serverId ? href + '&serverId=' + encodeURIComponent(serverId) : href;
     }
 
-    function navigateTo(itemId) {
-        if (window.Dashboard && typeof window.Dashboard.navigate === 'function') {
-            window.Dashboard.navigate('details?id=' + encodeURIComponent(itemId));
-            return true;
+    function posterUrl(item) {
+        var client = apiClient();
+        if (!item.HasPrimaryImage || !client || typeof client.getImageUrl !== 'function') {
+            return null;
         }
-        return false;
+        return client.getImageUrl(item.Id, { type: 'Primary', fillHeight: 330, quality: 90 });
     }
 
-    function createCard(match) {
-        var item = match.libraryItem;
+    function createCard(item, rank, showRank) {
+        // Mirrors the markup Jellyfin's own cardBuilder emits for an overflow portrait card,
+        // so the rows inherit native sizing, hover, spacing and typography.
+        var card = document.createElement('div');
+        card.className = 'card overflowPortraitCard card-hoverable jellytrends-card';
 
-        var card = document.createElement('a');
-        card.className = 'jellytrends-card';
-        card.href = '#/details?id=' + encodeURIComponent(item.Id);
-        card.title = item.Name || '';
-        card.addEventListener('click', function (event) {
-            if (navigateTo(item.Id)) {
-                event.preventDefault();
-            }
-        });
+        var cardBox = document.createElement('div');
+        cardBox.className = 'cardBox cardBox-bottompadded';
 
-        var imageWrap = document.createElement('div');
-        imageWrap.className = 'jellytrends-image-wrap';
+        var scalable = document.createElement('div');
+        scalable.className = 'cardScalable';
 
-        var imageUrl = getImageUrl(item);
-        if (imageUrl) {
-            var img = document.createElement('img');
-            img.className = 'jellytrends-image';
-            img.loading = 'lazy';
-            img.src = imageUrl;
-            img.alt = item.Name || '';
-            imageWrap.appendChild(img);
+        var padder = document.createElement('div');
+        padder.className = 'cardPadder cardPadder-overflowPortrait';
+
+        var link = document.createElement('a');
+        link.className = 'cardImageContainer coveredImage cardContent itemAction jellytrends-link';
+        link.setAttribute('data-action', 'link');
+        link.href = detailsHref(item.Id);
+        link.title = item.Name || '';
+
+        var image = posterUrl(item);
+        if (image) {
+            link.style.backgroundImage = 'url(\'' + image.replace(/'/g, "\\'") + '\')';
         } else {
-            var placeholder = document.createElement('div');
-            placeholder.className = 'jellytrends-image jellytrends-placeholder';
-            placeholder.textContent = item.Name || '';
-            imageWrap.appendChild(placeholder);
+            link.classList.add('jellytrends-noimage');
+            link.textContent = item.Name || '';
         }
 
-        var badge = document.createElement('span');
-        badge.className = 'jellytrends-rank';
-        badge.textContent = '#' + match.rank;
-        imageWrap.appendChild(badge);
+        if (showRank) {
+            var badge = document.createElement('span');
+            badge.className = 'jellytrends-rank';
+            badge.textContent = '#' + rank;
+            link.appendChild(badge);
+        }
 
-        var title = document.createElement('div');
-        title.className = 'jellytrends-title';
-        title.textContent = item.Name || '';
+        scalable.appendChild(padder);
+        scalable.appendChild(link);
 
-        card.appendChild(imageWrap);
-        card.appendChild(title);
+        var text = document.createElement('div');
+        text.className = 'cardText cardTextCentered jellytrends-text';
+        var textLink = document.createElement('a');
+        textLink.className = 'itemAction jellytrends-textlink';
+        textLink.setAttribute('data-action', 'link');
+        textLink.href = link.href;
+        textLink.textContent = item.Name || '';
+        text.appendChild(textLink);
+
+        cardBox.appendChild(scalable);
+        cardBox.appendChild(text);
+        card.appendChild(cardBox);
         return card;
     }
 
-    function createSection(titleText, matches) {
-        var section = document.createElement('section');
-        section.className = 'jellytrends-section';
+    function createSection(title, items, showRank) {
+        var section = document.createElement('div');
+        section.className = 'verticalSection jellytrends-section';
 
         var heading = document.createElement('h2');
-        heading.className = 'jellytrends-heading';
-        heading.textContent = titleText;
+        heading.className = 'sectionTitle sectionTitle-cards padded-left';
+        heading.textContent = title;
         section.appendChild(heading);
 
         var row = document.createElement('div');
-        row.className = 'jellytrends-row';
-        matches.forEach(function (match) {
-            row.appendChild(createCard(match));
-        });
-        section.appendChild(row);
+        row.className = 'itemsContainer padded-left padded-right jellytrends-row';
 
+        // Cards are assembled off-document so the browser lays out once, not once per card.
+        var fragment = document.createDocumentFragment();
+        for (var i = 0; i < items.length; i++) {
+            fragment.appendChild(createCard(items[i], items[i].Rank, showRank));
+        }
+        row.appendChild(fragment);
+
+        section.appendChild(row);
         return section;
     }
 
-    function buildLookup(items) {
-        var byTitle = new Map();
-        var byTitleYear = new Map();
-        var byProvider = new Map();
-
-        function addProvider(prefix, value, item) {
-            if (value === null || value === undefined || value === '') {
-                return;
-            }
-            var key = prefix + ':' + String(value).toLowerCase();
-            if (!byProvider.has(key)) {
-                byProvider.set(key, item);
-            }
-        }
-
-        (items || []).forEach(function (item) {
-            [item.Name, item.OriginalTitle, item.SortName].forEach(function (raw) {
-                var title = normalizeTitle(raw);
-                if (!title) {
-                    return;
-                }
-                if (!byTitle.has(title)) {
-                    byTitle.set(title, []);
-                }
-                byTitle.get(title).push(item);
-                if (item.ProductionYear) {
-                    var yearKey = title + '|' + item.ProductionYear;
-                    if (!byTitleYear.has(yearKey)) {
-                        byTitleYear.set(yearKey, item);
-                    }
-                }
-            });
-
-            var ids = item.ProviderIds || {};
-            Object.keys(ids).forEach(function (name) {
-                addProvider(String(name).toLowerCase(), ids[name], item);
-            });
-        });
-
-        return {
-            byTitle: byTitle,
-            byTitleYear: byTitleYear,
-            byProvider: byProvider,
-            allItems: items || []
-        };
-    }
-
-    function selectBestCandidate(candidates, targetYear) {
-        if (!candidates || !candidates.length) {
-            return null;
-        }
-        if (!targetYear) {
-            return candidates[0];
-        }
-
-        var best = null;
-        var bestDiff = 999;
-        candidates.forEach(function (candidate) {
-            if (!candidate.ProductionYear) {
-                return;
-            }
-            var diff = Math.abs(parseInt(candidate.ProductionYear, 10) - parseInt(targetYear, 10));
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                best = candidate;
-            }
-        });
-
-        return (best && bestDiff <= 4) ? best : candidates[0];
-    }
-
-    function matchTrending(entries, lookup, options) {
-        var matches = [];
-        var used = new Set();
-
-        (entries || []).some(function (entry) {
-            if (matches.length >= options.maxItems) {
-                return true;
-            }
-
-            var libraryItem =
-                lookup.byProvider.get('imdb:' + String(entry.ImdbId || '').toLowerCase()) ||
-                lookup.byProvider.get('tmdb:' + String(entry.TmdbId || '').toLowerCase()) ||
-                lookup.byProvider.get('tvdb:' + String(entry.TvdbId || '').toLowerCase()) ||
-                null;
-
-            var key = normalizeTitle(entry.Title);
-            if (!libraryItem && key && entry.Year) {
-                libraryItem = lookup.byTitleYear.get(key + '|' + entry.Year) || null;
-            }
-            if (!libraryItem && key && !options.strictYearMatch) {
-                libraryItem = selectBestCandidate(lookup.byTitle.get(key), entry.Year);
-            }
-
-            if (!libraryItem || used.has(libraryItem.Id)) {
-                return false;
-            }
-
-            used.add(libraryItem.Id);
-            matches.push({
-                // The badge keeps the online chart position so a title sitting at #37
-                // worldwide still reads '#37' even when it is the third hit in the library.
-                rank: options.showOnlineRank ? entry.Rank : matches.length + 1,
-                libraryItem: libraryItem
-            });
-            return false;
-        });
-
-        return matches;
-    }
-
-    function getItems(userId, includeType) {
-        var client = apiClient();
-        var query = {
-            Recursive: true,
-            IncludeItemTypes: includeType,
-            // Only real ItemFields values are accepted; 10.11 rejects the whole request
-            // with HTTP 400 otherwise. ProductionYear and ImageTags are always returned.
-            Fields: 'ProviderIds,OriginalTitle,SortName',
-            EnableImageTypes: 'Primary',
-            SortBy: 'SortName',
-            SortOrder: 'Ascending',
-            Limit: 50000
-        };
-
-        if (typeof client.getItems === 'function') {
-            return client.getItems(userId, query).then(function (result) {
-                return (result && result.Items) || [];
-            });
-        }
-
-        return client.getJSON(client.getUrl('Users/' + userId + '/Items', query)).then(function (result) {
-            return (result && result.Items) || [];
-        });
-    }
-
-    function getItemsCached(userId, includeType) {
-        var now = Date.now();
-        if (state.libraryCache[includeType] && (now - state.libraryCacheAt[includeType]) < LIBRARY_CACHE_MS) {
-            return Promise.resolve(state.libraryCache[includeType]);
-        }
-
-        return getItems(userId, includeType).then(function (items) {
-            state.libraryCache[includeType] = items;
-            state.libraryCacheAt[includeType] = Date.now();
-            return items;
-        });
-    }
-
-    function loadTrendingCached() {
-        var client = apiClient();
-        var now = Date.now();
-        if (state.trendingCache && (now - state.trendingCacheAt) < TRENDING_CACHE_MS) {
-            return Promise.resolve(state.trendingCache);
-        }
-
-        return client.getJSON(client.getUrl('JellyTrends/trending')).then(function (payload) {
-            state.trendingCache = payload || {};
-            state.trendingCacheAt = Date.now();
-            return state.trendingCache;
-        });
-    }
-
-    function loadConfig() {
-        var client = apiClient();
-        return client.getJSON(client.getUrl('JellyTrends/config'));
-    }
-
-    function mount(config, movieMatches, showMatches) {
+    function mount(rows) {
         var target = getMountTarget();
         if (!target) {
             return false;
@@ -362,22 +170,26 @@
         try {
             removeRoot();
 
-            if (!movieMatches.length && !showMatches.length) {
+            var movies = rows.Movies || [];
+            var shows = rows.Shows || [];
+            if (!movies.length && !shows.length) {
                 return true;
             }
 
             var root = document.createElement('div');
             root.id = ROOT_ID;
             root.className = 'jellytrends-root';
-            root.style.setProperty('--jt-card-scale', String(clamp(config.CardScalePercent, 60, 180) / 100));
-            root.style.setProperty('--jt-text-scale', String(clamp(config.TextScalePercent, 70, 180) / 100));
+            root.style.setProperty('--jt-card-scale', String(clamp(rows.CardScalePercent, 60, 180) / 100));
+            root.style.setProperty('--jt-text-scale', String(clamp(rows.TextScalePercent, 70, 180) / 100));
 
-            var count = clamp(config.MaxDisplayItems, 1, 50);
-            if (movieMatches.length) {
-                root.appendChild(createSection('Top ' + count + ' Movies In Your Library', movieMatches));
+            var count = clamp(rows.MaxDisplayItems, 1, 50);
+            var showRank = rows.ShowOnlineRank !== false;
+
+            if (movies.length) {
+                root.appendChild(createSection('Top ' + count + ' Movies In Your Library', movies, showRank));
             }
-            if (showMatches.length) {
-                root.appendChild(createSection('Top ' + count + ' Shows In Your Library', showMatches));
+            if (shows.length) {
+                root.appendChild(createSection('Top ' + count + ' Shows In Your Library', shows, showRank));
             }
 
             target.insertBefore(root, target.firstChild);
@@ -398,50 +210,43 @@
         return Math.max(min, Math.min(max, parsed));
     }
 
-    function run() {
-        if (state.busy || !apiClient() || !onHome() || isPlaybackActive()) {
-            return;
+    /**
+     * One request returns the matched rows and the display settings together. Matching runs
+     * on the server, so the client never downloads the library to work out what it owns.
+     */
+    function loadRows() {
+        var now = Date.now();
+        if (state.rows && (now - state.rowsAt) < ROWS_CACHE_MS) {
+            return Promise.resolve(state.rows);
         }
 
-        var userId = getCurrentUserId();
-        if (!userId) {
+        var client = apiClient();
+        return client.getJSON(client.getUrl('JellyTrends/rows')).then(function (rows) {
+            state.rows = rows || {};
+            state.rowsAt = Date.now();
+            return state.rows;
+        });
+    }
+
+    function run() {
+        if (state.busy || !apiClient() || !onHome() || isPlaybackActive()) {
             return;
         }
 
         var runId = ++state.runId;
         state.busy = true;
 
-        loadConfig().then(function (config) {
-            if (!config || !config.Enabled) {
-                state.rendered = null;
-                removeRoot();
-                return null;
+        loadRows().then(function (rows) {
+            if (runId !== state.runId || !onHome() || isPlaybackActive()) {
+                return;
             }
-
-            return Promise.all([
-                loadTrendingCached(),
-                getItemsCached(userId, 'Movie'),
-                getItemsCached(userId, 'Series')
-            ]).then(function (results) {
-                if (runId !== state.runId || !onHome() || isPlaybackActive()) {
-                    return null;
-                }
-
-                var trending = results[0] || {};
-                var options = {
-                    maxItems: clamp(config.MaxDisplayItems, 1, 50),
-                    strictYearMatch: !!config.StrictYearMatch,
-                    showOnlineRank: config.ShowOnlineRank !== false
-                };
-
-                var movieMatches = matchTrending(trending.Movies, buildLookup(results[1]), options);
-                var showMatches = matchTrending(trending.Shows, buildLookup(results[2]), options);
-
-                state.config = config;
-                state.rendered = { movies: movieMatches, shows: showMatches };
-                mount(config, movieMatches, showMatches);
-                return null;
-            });
+            if (!rows || !rows.Enabled) {
+                // Keep the cached answer so a disabled plugin does not re-request on every
+                // DOM mutation; only the mount is skipped.
+                removeRoot();
+                return;
+            }
+            mount(rows);
         }).catch(function (error) {
             if (window.console && console.warn) {
                 console.warn('JellyTrends failed to render', error);
@@ -452,8 +257,8 @@
     }
 
     /**
-     * Re-attaches the rows without refetching when Jellyfin re-renders the home sections,
-     * and tears them down as soon as the user leaves home or starts playback.
+     * Re-attaches the rows when Jellyfin rebuilds the home sections, and tears them down as
+     * soon as the user leaves home or starts playback.
      */
     function ensure() {
         if (!onHome() || isPlaybackActive()) {
@@ -461,22 +266,22 @@
             return;
         }
 
+        observeHome();
+
         if (getRoot()) {
             return;
         }
 
-        if (state.rendered && state.config) {
-            if (mount(state.config, state.rendered.movies, state.rendered.shows)) {
-                return;
-            }
+        if (state.rows && state.rows.Enabled && mount(state.rows)) {
+            return;
         }
 
         run();
     }
 
     function scheduleEnsure(delay) {
-        // Throttle rather than debounce: a page that mutates continuously must still get
-        // its rows back instead of resetting the timer forever.
+        // Throttle rather than debounce: a page that mutates continuously must still get its
+        // rows back instead of resetting the timer forever.
         if (state.ensureTimer) {
             return;
         }
@@ -484,6 +289,37 @@
             state.ensureTimer = null;
             ensure();
         }, delay || 250);
+    }
+
+    /**
+     * Watches only the home tab.
+     *
+     * Observing document.body would fire on every unrelated mutation on the page. That is
+     * especially costly alongside Media Bar, whose slideshow lives directly on document.body
+     * and mutates continuously as slides transition, progress bars advance and artwork loads.
+     */
+    function observeHome() {
+        if (typeof MutationObserver !== 'function') {
+            return;
+        }
+
+        var homeTab = document.querySelector('#homeTab') || document.querySelector('#indexPage');
+        if (!homeTab || homeTab === state.observedNode) {
+            return;
+        }
+
+        if (state.observer) {
+            state.observer.disconnect();
+        }
+
+        state.observedNode = homeTab;
+        state.observer = new MutationObserver(function () {
+            if (state.mounting) {
+                return;
+            }
+            scheduleEnsure(400);
+        });
+        state.observer.observe(homeTab, { childList: true, subtree: true });
     }
 
     function handleNavigation() {
@@ -504,16 +340,19 @@
             }
         });
 
+        // The home tab does not exist yet on a cold load, so watch for it once, cheaply, and
+        // hand off to the narrow observer as soon as it appears.
         if (typeof MutationObserver === 'function') {
-            new MutationObserver(function () {
-                if (state.mounting) {
-                    return;
+            var bootstrap = new MutationObserver(function () {
+                if (document.querySelector('#homeTab')) {
+                    bootstrap.disconnect();
+                    scheduleEnsure(150);
                 }
-                scheduleEnsure(400);
-            }).observe(document.body, { childList: true, subtree: true });
+            });
+            bootstrap.observe(document.documentElement, { childList: true, subtree: true });
         }
 
-        scheduleEnsure(1200);
+        scheduleEnsure(800);
     }
 
     if (document.readyState === 'loading') {

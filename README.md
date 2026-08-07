@@ -20,7 +20,23 @@ ranks online, not where it ranks inside your shelf.
 - Matches charts to your library by IMDb / TMDB / TVDB id first, then by title and year.
 - Keeps the online chart position on the rank badge (toggleable).
 - Row size is configurable — 10 is the default, anything from 1 to 50 works.
-- Caches results so Home stays fast after the first render.
+- Renders with Jellyfin's own card and section styles, so the rows sit alongside
+  Continue Watching and More Like This without looking bolted on.
+
+## How It Performs
+
+Matching runs on the server. Jellyfin does not expose provider-id filtering through the HTTP
+item API, so a client that matched charts itself would have to download the entire library
+and index it locally — on every home load. Instead the plugin reads the library in process
+and the browser receives only the handful of rows it draws.
+
+One request (`GET /JellyTrends/rows`) returns both the rows and the display settings, so a
+render costs a single round trip. Charts, matched rows and the injected assets are all
+cached, and the assets revalidate with an ETag.
+
+The DOM observer that re-attaches the rows watches `#homeTab` only, never `document.body`.
+That matters most alongside Media Bar, whose slideshow lives on `document.body` and mutates
+continuously as slides transition and artwork loads.
 
 ## Requirements
 
@@ -149,25 +165,18 @@ On the Home page, press F12 and run:
 
 ```js
 (async () => {
-  const c = window.ApiClient, uid = c.getCurrentUserId();
-  const cfg = await c.getJSON(c.getUrl('JellyTrends/config'));
-  const tr  = await c.getJSON(c.getUrl('JellyTrends/trending'));
-  const base = {Recursive:true, Fields:'ProviderIds,OriginalTitle,SortName',
-                EnableImageTypes:'Primary', SortBy:'SortName', SortOrder:'Ascending', Limit:50000};
-  const get = async t => ((await c.getItems(uid, {...base, IncludeItemTypes:t})).Items || []);
-  const movies = await get('Movie'), shows = await get('Series');
-  const idx = a => {const s=new Set(); a.forEach(i=>{const p=i.ProviderIds||{};
-    if(p.Tmdb)s.add('t'+p.Tmdb); if(p.Imdb)s.add('i'+String(p.Imdb).toLowerCase()); if(p.Tvdb)s.add('v'+p.Tvdb);}); return s;};
-  const hit = (e,s) => s.has('t'+e.TmdbId) || s.has('i'+String(e.ImdbId||'').toLowerCase()) || s.has('v'+e.TvdbId);
-  const mi = idx(movies), si = idx(shows);
+  const c = window.ApiClient;
+  const rows  = await c.getJSON(c.getUrl('JellyTrends/rows'));
+  const chart = await c.getJSON(c.getUrl('JellyTrends/trending'));
   console.log({
     scriptLoaded: !!window.JellyTrendsInit,
-    rootInDom: !!document.getElementById('jellytrends-root'),
-    mountTarget: !!document.querySelector('#homeTab .homeSectionsContainer'),
-    chart: {movies:(tr.Movies||[]).length, shows:(tr.Shows||[]).length, source: tr.Source},
-    library: {movies: movies.length, shows: shows.length},
-    matches: {movies:(tr.Movies||[]).filter(e=>hit(e,mi)).length,
-              shows: (tr.Shows||[]).filter(e=>hit(e,si)).length}
+    rootInDom:    !!document.getElementById('jellytrends-root'),
+    mountTarget:  !!document.querySelector('#homeTab .homeSectionsContainer'),
+    enabled: rows.Enabled,
+    source:  rows.Source,
+    chartSize:   {movies: (chart.Movies||[]).length, shows: (chart.Shows||[]).length},
+    matchedRows: {movies: (rows.Movies||[]).length,  shows: (rows.Shows||[]).length},
+    sample: (rows.Movies||[]).slice(0,5).map(m => '#' + m.Rank + ' ' + m.Name)
   });
 })();
 ```
@@ -176,17 +185,18 @@ On the Home page, press F12 and run:
 | --- | --- |
 | `scriptLoaded: false` | File Transformation is not injecting — see the steps above |
 | `mountTarget: false` | Home sections have not rendered yet, or you are on the Favorites tab |
-| `matches` are `0` | The chart genuinely contains nothing you own — raise chart depth or switch source |
-| `matches` > 0 but `rootInDom: false` | A genuine bug; please open an issue with this output |
+| `chartSize` is `0` | The source is unreachable — check network access and any API key |
+| `matchedRows` are `0` | The chart genuinely contains nothing you own — raise chart depth or switch source |
+| `matchedRows` > 0 but `rootInDom: false` | A genuine bug; please open an issue with this output |
 
 ## Endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /JellyTrends/config` | Display settings for the web client |
-| `GET /JellyTrends/trending` | Current charts, cached |
+| `GET /JellyTrends/rows` | Matched rows plus display settings, in one response |
+| `GET /JellyTrends/trending` | Raw charts before library matching, for diagnostics |
 | `POST /JellyTrends/test` | Refetches and reports which source answered |
-| `GET /JellyTrends/assets/{file}` | Serves the injected JS and CSS |
+| `GET /JellyTrends/assets/{file}` | Serves the injected JS and CSS, with ETag revalidation |
 
 ## For Maintainers
 

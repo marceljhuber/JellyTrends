@@ -2,10 +2,10 @@
     "owner":  "marceljhuber",
     "versions":  [
                      {
-                         "changelog":  "Release 0.2.0.1",
-                         "version":  "0.2.0.1",
-                         "checksum":  "1A0EF63CBA0552383307E429EF224301",
-                         "timestamp":  "2026-08-07T00:09:27Z",
+                         "changelog":  "Release 0.2.1.0",
+                         "version":  "0.2.1.0",
+                         "checksum":  "69DCB2D7235F0091BE8C226CAEF824C5",
+                         "timestamp":  "2026-08-07T01:30:38Z",
                          "dependencies":  [
                                               "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
                                           ],

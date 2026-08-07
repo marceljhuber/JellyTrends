@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.2.1.0
+
+Performance pass, native styling, and a navigation fix.
+
+**Fixed**
+
+- Clicking a card did not always open the item. Jellyfin's own cards link to
+  `#/details?id=<id>&serverId=<serverId>`; the `serverId` was missing, so the details route
+  could not resolve which server the item belonged to.
+
+**Changed — performance**
+
+- Chart-to-library matching moved from the browser to the server. The client used to request
+  the entire library (both movies and series, `Limit: 50000`) on every home load and index it
+  locally, normalising every title three ways. Jellyfin does not expose provider-id filtering
+  over HTTP, so that download was the only way to do it client side. The plugin now reads the
+  library in process and returns just the rows to draw.
+- Config and rows collapsed into a single `GET /JellyTrends/rows` request. A render used to
+  cost three round trips before anything could be drawn.
+- Chart pages are fetched concurrently instead of one after another. A depth-100 Cinemeta
+  fetch measures ~140 ms. A failed page no longer takes the whole chart down with it.
+- The injected JS and CSS are read from the assembly once, held in memory, and served with an
+  ETag and `Cache-Control`, so repeat loads answer 304.
+- Matched rows are cached per user for five minutes, short enough that newly added titles
+  appear without waiting out the chart cache.
+- The DOM observer now watches `#homeTab` rather than `document.body` with `subtree`. Media
+  Bar's slideshow lives on `document.body` and mutates continuously, so the old observer woke
+  on every slide transition, progress tick and image load.
+- Cards are assembled in a `DocumentFragment` so the browser lays out once per row.
+
+**Changed — appearance**
+
+- Rows now render with Jellyfin's own classes (`verticalSection`, `sectionTitle-cards`,
+  `card overflowPortraitCard`, `cardBox`, `cardScalable`, `cardPadder-overflowPortrait`,
+  `cardImageContainer`, `cardText`), so they inherit native card sizing, spacing, hover and
+  typography and match sections like Continue Watching. The stylesheet now only supplies what
+  Jellyfin does not: the horizontal scroller, the rank badge and the size scaling.
+- `GET /JellyTrends/config` is gone, replaced by `/rows`. `/trending` is kept for diagnostics.
+
 ## 0.2.0.1
 
 **Fixed**
