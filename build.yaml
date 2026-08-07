@@ -1,17 +1,20 @@
 ---
 name: "JellyTrends"
 guid: "5e4f95f0-df85-4ef4-a73c-30afde8be5f9"
-version: "0.1.7.3"
-targetAbi: "10.11.7.0"
+version: "0.2.0.1"
+targetAbi: "10.11.0.0"
 framework: "net9.0"
-overview: "Netflix-style Top 10 rows based on your library"
+overview: "Netflix-style trending rows built from your own library"
 description: >
-  Builds large trending pools from free public sources, matches by
-  IMDb/TMDB/TVDB IDs first, and renders Top 10 movie and show rows
-  based on content you already have in Jellyfin.
+  Pulls trending movie and show charts from TMDB, Trakt or the keyless
+  Cinemeta catalog, matches them against your library by IMDb/TMDB/TVDB id,
+  and renders Top N rows that keep each title's real online chart position.
+  Row size is configurable. Works on Jellyfin Web, the Android and iOS apps,
+  and Jellyfin Media Player.
 category: "General"
-owner: "local"
+owner: "marceljhuber"
 artifacts:
 - "Jellyfin.Plugin.JellyTrends.dll"
 changelog: >
-  Initial release.
+  Rebuilt the trending pipeline on TMDB/Trakt/Cinemeta providers, retargeted
+  to Jellyfin 10.11, and fixed row placement alongside hero plugins.
