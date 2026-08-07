@@ -69,13 +69,20 @@
     }
 
     /**
-     * Jellyfin rewrites the innerHTML of '.sections' every time home sections reload, so
-     * the rows are mounted as a sibling above that container instead of inside it.
+     * The rows mount inside the home sections container, as its first child.
+     *
+     * They must live inside it rather than beside it: theme and hero plugins such as
+     * Media Bar offset '.homeSectionsContainer' (top: 65vh) to clear a full-bleed
+     * slideshow, and anything mounted outside that container misses the offset and ends
+     * up hidden underneath the slideshow. Jellyfin rewrites this container's innerHTML
+     * whenever home sections reload, which drops the rows; the MutationObserver in init()
+     * re-attaches them from cache.
      */
     function getMountTarget() {
-        return document.querySelector('#homeTab') ||
-            document.querySelector('#indexPage .homeSectionsContainer') ||
-            document.querySelector('.homeSectionsContainer');
+        return document.querySelector('#homeTab .homeSectionsContainer') ||
+            document.querySelector('#homeTab .sections') ||
+            document.querySelector('.homeSectionsContainer') ||
+            document.querySelector('#homeTab');
     }
 
     function getRoot() {

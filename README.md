@@ -45,6 +45,15 @@ bundle gets them:
 Serving Jellyfin from a sub path (`https://example.com/jellyfin/`) is handled — the injected
 bootstrap resolves the server root at runtime.
 
+### Other injection plugins
+
+The rows mount inside `.homeSectionsContainer`, the same container Jellyfin fills with its
+own home sections, so they inherit any layout offset a hero or theme plugin applies. This is
+what keeps JellyTrends compatible with
+[Media Bar](https://github.com/IAmParadox27/jellyfin-plugin-media-bar), which shifts that
+container down (`top: 65vh`) to clear its full-bleed slideshow. Rows mounted outside the
+container would miss that offset and end up hidden behind the slideshow.
+
 ## Install
 
 1. Open Jellyfin Dashboard → `Plugins` → `Repositories`.
