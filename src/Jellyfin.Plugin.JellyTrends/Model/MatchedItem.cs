@@ -16,5 +16,9 @@ public sealed class MatchedItem
 
     public int? ProductionYear { get; set; }
 
-    public bool HasPrimaryImage { get; set; }
+    /// <summary>
+    /// Gets or sets the cache tag of the primary image, or null when the item has none. Sending
+    /// the tag lets the browser cache the poster the same way it caches Jellyfin's own cards.
+    /// </summary>
+    public string? ImageTag { get; set; }
 }

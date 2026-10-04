@@ -33,8 +33,15 @@ public static class TransformationPatches
             int headCloseIndex = original.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
             if (headCloseIndex < 0)
             {
-                return original + importedHtml;
+                return original + importedHtml.Replace("__JT_VERSION__", Plugin.Instance.Version.ToString(), StringComparison.Ordinal);
             }
+
+            // The version in the asset URLs busts browser and WebView caches on upgrade, so a
+            // stale script can never run against a newer server.
+            importedHtml = importedHtml.Replace(
+                "__JT_VERSION__",
+                Plugin.Instance.Version.ToString(),
+                StringComparison.Ordinal);
 
             return original.Insert(headCloseIndex, importedHtml);
         }

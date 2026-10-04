@@ -9,12 +9,12 @@
 
         var css = document.createElement('link');
         css.rel = 'stylesheet';
-        css.href = base + '/JellyTrends/assets/jellytrends.css';
+        css.href = base + '/JellyTrends/assets/jellytrends.css?v=__JT_VERSION__';
         document.head.appendChild(css);
 
         var script = document.createElement('script');
         script.defer = true;
-        script.src = base + '/JellyTrends/assets/jellytrends.js';
+        script.src = base + '/JellyTrends/assets/jellytrends.js?v=__JT_VERSION__';
         document.head.appendChild(script);
     })();
 </script>

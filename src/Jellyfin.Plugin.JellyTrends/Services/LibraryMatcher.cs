@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.JellyTrends.Model;
+using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
@@ -33,6 +34,7 @@ public static class LibraryMatcher
     /// </summary>
     public static List<MatchedItem> Match(
         ILibraryManager libraryManager,
+        IImageProcessor imageProcessor,
         AuthorizationInfo? auth,
         IReadOnlyList<TrendingEntry> entries,
         bool isShow,
@@ -61,6 +63,8 @@ public static class LibraryMatcher
                 continue;
             }
 
+            ItemImageInfo? primary = item.GetImageInfo(ImageType.Primary, 0);
+
             matches.Add(new MatchedItem
             {
                 // Carry the online position through untouched so the badge can show where the
@@ -69,7 +73,7 @@ public static class LibraryMatcher
                 Id = item.Id.ToString("N", CultureInfo.InvariantCulture),
                 Name = item.Name ?? string.Empty,
                 ProductionYear = item.ProductionYear,
-                HasPrimaryImage = item.ImageInfos.Any(image => image.Type == ImageType.Primary)
+                ImageTag = primary is null ? null : imageProcessor.GetImageCacheTag(item, primary)
             });
 
             if (matches.Count >= maxItems)

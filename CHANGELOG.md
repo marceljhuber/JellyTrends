@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.3.0
+
+Reliability, native look, and multi-version support.
+
+**Security**
+
+- `/JellyTrends/rows` and `/JellyTrends/trending` were reachable without signing in. An
+  unauthenticated request ran the library query unscoped and returned titles from every
+  library. Both now require a signed-in user, and `/JellyTrends/test` requires an
+  administrator.
+
+**Fixed**
+
+- Cards could fail to open: the rows were rebuilt whenever Jellyfin touched the home page,
+  which could replace a card between mouse-down and mouse-up. Rows are now only redrawn when
+  their content changed, and card clicks navigate directly.
+- Rows could stay missing after a quick navigation: an in-flight render was dropped and nothing
+  retried it.
+- After signing out and into another account, the previous account's rows could be shown.
+  Cached rows are now tied to the user.
+- The assembly reported version `0.1.7.3` regardless of release. It now follows the project
+  version.
+- A newly added title now appears on the next home load instead of after the 5 minute cache.
+- File Transformation loading after JellyTrends left the injection unregistered until the next
+  restart. Registration now polls for it, and no longer depends on the rows setting, so
+  toggling it needs no restart.
+
+**Changed**
+
+- Rows use Jellyfin's native `emby-scroller` (arrow buttons, wheel, touch and remote focus)
+  with native section headers and a year line under each title. A plain CSS scroller is the
+  fallback when the native one is unavailable or fails to size the cards.
+- Posters carry Jellyfin's image tag (browser-cacheable) and lazy-load.
+- Chart fetching is stale-while-revalidate, retries transient failures once, uses a 12 second
+  timeout (was 30), and backs off for two minutes after a total failure.
+- Asset URLs are versioned so updates are picked up immediately.
+- Row headings are configurable.
+- Jellyfin 10.10 (net8.0) is supported again with its own build; the release script produces a
+  zip per line. Source also compiles against Jellyfin 12.0 (net10.0).
+- `scripts/release.py` replaces the PowerShell script; added the GPL-3.0 license.
+
 ## 0.2.1.0
 
 Performance pass, native styling, and a navigation fix.

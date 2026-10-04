@@ -1,22 +1,35 @@
-[{
-    "owner":  "marceljhuber",
-    "versions":  [
-                     {
-                         "changelog":  "Release 0.2.1.0",
-                         "version":  "0.2.1.0",
-                         "checksum":  "69DCB2D7235F0091BE8C226CAEF824C5",
-                         "timestamp":  "2026-08-07T01:30:38Z",
-                         "dependencies":  [
-                                              "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
-                                          ],
-                         "targetAbi":  "10.11.0.0",
-                         "sourceUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/Release-10.11.11.zip"
-                     }
-                 ],
-    "overview":  "Netflix-style trending rows built from your own library",
-    "category":  "General",
-    "guid":  "5e4f95f0-df85-4ef4-a73c-30afde8be5f9",
-    "name":  "JellyTrends",
-    "description":  "Pulls trending movie and show charts from TMDB, Trakt or the keyless Cinemeta catalog, matches them against your library by IMDb/TMDB/TVDB id, and renders Top N rows that keep each title\u0027s real online chart position. Row size is configurable. Works on Jellyfin Web, the Android and iOS apps, and Jellyfin Media Player.",
-    "imageUrl":  "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png"
-}]
+[
+  {
+    "guid": "5e4f95f0-df85-4ef4-a73c-30afde8be5f9",
+    "name": "JellyTrends",
+    "overview": "Netflix-style trending rows built from your own library",
+    "description": "Adds Top N Movies and Top N Shows rows to the Jellyfin home screen, built from the titles you own. Charts come from TMDB, Trakt or the keyless Cinemeta catalog, and each title keeps its real position in the online chart. Matching runs on the server, and the rows use Jellyfin's own cards and scrollers. Requires the File Transformation plugin.",
+    "owner": "marceljhuber",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
+    "versions": [
+      {
+        "version": "0.3.0.1",
+        "changelog": "Native Jellyfin scroller and cards, reliable card navigation, instant cached renders, stale-while-revalidate chart fetching, authenticated endpoints, Jellyfin 10.10 support.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.0.1-jellyfin-10.11.zip",
+        "checksum": "9E9F5C8BFE3BAAFA8F4550F8ED609DE2",
+        "timestamp": "2026-10-04T23:30:55Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
+      },
+      {
+        "version": "0.3.0.0",
+        "changelog": "Native Jellyfin scroller and cards, reliable card navigation, instant cached renders, stale-while-revalidate chart fetching, authenticated endpoints, Jellyfin 10.10 support.",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.0.0-jellyfin-10.10.zip",
+        "checksum": "BA5A896BB2BF93480D8CA3E11EED69E2",
+        "timestamp": "2026-10-04T23:30:54Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
+      }
+    ]
+  }
+]

@@ -5,8 +5,10 @@ using System.Security.Cryptography;
 using Jellyfin.Plugin.JellyTrends.Configuration;
 using Jellyfin.Plugin.JellyTrends.Model;
 using Jellyfin.Plugin.JellyTrends.Services;
+using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 
@@ -18,13 +20,29 @@ public sealed class JellyTrendsController : ControllerBase
     private static readonly ConcurrentDictionary<string, CachedAsset?> AssetCache = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, CachedRows> RowsCache = new(StringComparer.Ordinal);
 
+    private static int _libraryHooked;
+
     private readonly ILibraryManager _libraryManager;
+    private readonly IImageProcessor _imageProcessor;
     private readonly IAuthorizationContext _authorizationContext;
 
-    public JellyTrendsController(ILibraryManager libraryManager, IAuthorizationContext authorizationContext)
+    public JellyTrendsController(
+        ILibraryManager libraryManager,
+        IImageProcessor imageProcessor,
+        IAuthorizationContext authorizationContext)
     {
         _libraryManager = libraryManager;
+        _imageProcessor = imageProcessor;
         _authorizationContext = authorizationContext;
+
+        // The library manager is a singleton, so subscribe once. Clearing the matched rows when
+        // titles come or go means a newly added movie shows up on the next home load instead
+        // of after the cache expires.
+        if (Interlocked.Exchange(ref _libraryHooked, 1) == 0)
+        {
+            libraryManager.ItemAdded += (_, _) => RowsCache.Clear();
+            libraryManager.ItemRemoved += (_, _) => RowsCache.Clear();
+        }
     }
 
     /// <summary>
@@ -68,6 +86,7 @@ public sealed class JellyTrendsController : ControllerBase
     /// Returns the rows for the calling user together with the display settings.
     /// </summary>
     [HttpGet("rows")]
+    [Authorize]
     public async Task<ActionResult<RowsResponse>> GetRows(CancellationToken cancellationToken)
     {
         PluginConfiguration config = Plugin.Instance.Configuration;
@@ -75,6 +94,8 @@ public sealed class JellyTrendsController : ControllerBase
         {
             Enabled = config.Enabled && config.EnableHomeRows,
             MaxDisplayItems = Clamp(config.MaxDisplayItems, 1, 50),
+            MoviesTitle = FormatTitle(config.MoviesRowTitle, "Top {n} Movies In Your Library", Clamp(config.MaxDisplayItems, 1, 50)),
+            ShowsTitle = FormatTitle(config.ShowsRowTitle, "Top {n} Shows In Your Library", Clamp(config.MaxDisplayItems, 1, 50)),
             ShowOnlineRank = config.ShowOnlineRank,
             CardScalePercent = Clamp(config.CardScalePercent, 60, 180),
             TextScalePercent = Clamp(config.TextScalePercent, 70, 180)
@@ -86,6 +107,13 @@ public sealed class JellyTrendsController : ControllerBase
         }
 
         AuthorizationInfo auth = await _authorizationContext.GetAuthorizationInfo(Request).ConfigureAwait(false);
+        if (!auth.IsAuthenticated || auth.UserId == Guid.Empty)
+        {
+            // Never match against an unscoped library: that would leak titles the caller
+            // cannot see.
+            return Unauthorized();
+        }
+
         TrendingResult trending = await TrendingService.GetTrendingAsync(config, cancellationToken).ConfigureAwait(false);
         response.Source = trending.Source;
 
@@ -105,8 +133,8 @@ public sealed class JellyTrendsController : ControllerBase
             return Ok(response);
         }
 
-        response.Movies = LibraryMatcher.Match(_libraryManager, auth, trending.Movies, false, response.MaxDisplayItems, config.StrictYearMatch);
-        response.Shows = LibraryMatcher.Match(_libraryManager, auth, trending.Shows, true, response.MaxDisplayItems, config.StrictYearMatch);
+        response.Movies = LibraryMatcher.Match(_libraryManager, _imageProcessor, auth, trending.Movies, false, response.MaxDisplayItems, config.StrictYearMatch);
+        response.Shows = LibraryMatcher.Match(_libraryManager, _imageProcessor, auth, trending.Shows, true, response.MaxDisplayItems, config.StrictYearMatch);
 
         // Held only briefly: the charts change slowly but the library can change at any time,
         // so a newly added title should show up without waiting out the chart cache.
@@ -126,6 +154,7 @@ public sealed class JellyTrendsController : ControllerBase
     /// an empty row means "source is down" or "you own none of these".
     /// </summary>
     [HttpGet("trending")]
+    [Authorize]
     public async Task<ActionResult<TrendingResult>> GetTrending(CancellationToken cancellationToken)
     {
         PluginConfiguration config = Plugin.Instance.Configuration;
@@ -142,12 +171,12 @@ public sealed class JellyTrendsController : ControllerBase
     /// settings page so an API key can be verified without waiting for the cache to expire.
     /// </summary>
     [HttpPost("test")]
+    [Authorize(Policy = "RequiresElevation")]
     public async Task<ActionResult<SourceTestResponse>> TestSource(CancellationToken cancellationToken)
     {
-        TrendingService.InvalidateCache();
         RowsCache.Clear();
 
-        TrendingResult result = await TrendingService.GetTrendingAsync(Plugin.Instance.Configuration, cancellationToken).ConfigureAwait(false);
+        TrendingResult result = await TrendingService.RefreshNowAsync(Plugin.Instance.Configuration, cancellationToken).ConfigureAwait(false);
 
         return Ok(new SourceTestResponse
         {
@@ -203,6 +232,12 @@ public sealed class JellyTrendsController : ControllerBase
                 RowsCache.TryRemove(entry.Key, out _);
             }
         }
+    }
+
+    private static string FormatTitle(string? template, string fallback, int count)
+    {
+        string text = string.IsNullOrWhiteSpace(template) ? fallback : template.Trim();
+        return text.Replace("{n}", count.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
     private static int Clamp(int value, int min, int max)

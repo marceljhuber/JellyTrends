@@ -34,6 +34,16 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public bool ShowOnlineRank { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the movie row heading. <c>{n}</c> is replaced with the row size.
+    /// </summary>
+    public string MoviesRowTitle { get; set; } = "Top {n} Movies In Your Library";
+
+    /// <summary>
+    /// Gets or sets the show row heading. <c>{n}</c> is replaced with the row size.
+    /// </summary>
+    public string ShowsRowTitle { get; set; } = "Top {n} Shows In Your Library";
+
     public int CardScalePercent { get; set; } = 100;
 
     public int TextScalePercent { get; set; } = 100;

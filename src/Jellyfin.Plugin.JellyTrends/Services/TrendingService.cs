@@ -26,6 +26,7 @@ public static class TrendingService
 
     private static readonly HttpClient HttpClient = CreateHttpClient();
     private static readonly SemaphoreSlim CacheLock = new(1, 1);
+    private static readonly object RefreshLock = new();
 
     /// <summary>
     /// Cinemeta types some ids inconsistently (tvdb_id comes back as a number for some
@@ -40,10 +41,21 @@ public static class TrendingService
     private static TrendingResult? _cachedResult;
     private static string _cacheKey = string.Empty;
     private static DateTimeOffset _cacheValidUntil = DateTimeOffset.MinValue;
+    private static DateTimeOffset _retryNotBefore = DateTimeOffset.MinValue;
+    private static Task? _refreshTask;
+
+    // After every provider fails, wait before asking again so a dead network does not make
+    // each home load pay for a full round of timeouts.
+    private static readonly TimeSpan FailureBackoff = TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// Gets the trending charts, honouring the configured cache duration.
     /// </summary>
+    /// <remarks>
+    /// Stale-while-revalidate: once a chart exists it is always returned immediately. When it
+    /// has expired a refresh runs in the background, so no home load ever waits on a slow
+    /// upstream after the first one.
+    /// </remarks>
     public static async Task<TrendingResult> GetTrendingAsync(PluginConfiguration config, CancellationToken cancellationToken)
     {
         int movieLimit = Clamp(config.MovieFeedLimit, 10, 500);
@@ -56,58 +68,44 @@ public static class TrendingService
             window,
             movieLimit.ToString(CultureInfo.InvariantCulture),
             showLimit.ToString(CultureInfo.InvariantCulture),
-            string.IsNullOrWhiteSpace(config.TmdbApiKey) ? "0" : "1",
-            string.IsNullOrWhiteSpace(config.TraktClientId) ? "0" : "1");
+            config.TmdbApiKey.Trim(),
+            config.TraktClientId.Trim());
 
-        if (TryGetFresh(key, out TrendingResult? fresh))
+        TrendingResult? cached = _cachedResult;
+        if (cached is not null && _cacheKey == key)
         {
-            return fresh;
+            if (_cacheValidUntil <= DateTimeOffset.UtcNow)
+            {
+                StartBackgroundRefresh(key, config, window, movieLimit, showLimit, cacheMinutes);
+            }
+
+            return cached;
         }
 
+        // Nothing usable for this configuration: this caller has to wait for a fetch.
         await CacheLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (TryGetFresh(key, out TrendingResult? refreshed))
+            cached = _cachedResult;
+            if (cached is not null && _cacheKey == key)
             {
-                return refreshed;
+                return cached;
             }
 
-            foreach (string provider in ResolveProviderChain(config))
+            if (_retryNotBefore > DateTimeOffset.UtcNow)
             {
-                TrendingResult result;
-                try
-                {
-                    result = await FetchFromProviderAsync(provider, config, window, movieLimit, showLimit, cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch
-                {
-                    continue;
-                }
-
-                if (result.Movies.Count == 0 && result.Shows.Count == 0)
-                {
-                    continue;
-                }
-
-                _cachedResult = result;
-                _cacheKey = key;
-                _cacheValidUntil = DateTimeOffset.UtcNow.AddMinutes(cacheMinutes);
-                return result;
+                return new TrendingResult { Source = "unavailable" };
             }
 
-            // Every provider failed. Serving the last known charts beats serving nothing,
-            // so keep the stale entry alive rather than dropping the rows entirely.
-            if (_cachedResult is not null)
+            TrendingResult? fetched = await FetchChainAsync(config, window, movieLimit, showLimit, cancellationToken).ConfigureAwait(false);
+            if (fetched is null)
             {
-                _cacheValidUntil = DateTimeOffset.UtcNow.AddMinutes(5);
-                return _cachedResult;
+                _retryNotBefore = DateTimeOffset.UtcNow + FailureBackoff;
+                return new TrendingResult { Source = "unavailable" };
             }
 
-            return new TrendingResult { Source = "unavailable" };
+            Store(fetched, key, cacheMinutes);
+            return fetched;
         }
         finally
         {
@@ -116,30 +114,100 @@ public static class TrendingService
     }
 
     /// <summary>
-    /// Drops the cached charts so the next request refetches.
+    /// Marks the cached charts expired so the next request refreshes them.
     /// </summary>
     public static void InvalidateCache()
     {
         _cacheValidUntil = DateTimeOffset.MinValue;
+        _retryNotBefore = DateTimeOffset.MinValue;
     }
 
-    private static bool TryGetFresh(string key, out TrendingResult result)
+    /// <summary>
+    /// Drops the cached charts entirely and refetches, waiting for the answer. Used by the
+    /// settings page so the result it shows is what the providers returned just now.
+    /// </summary>
+    public static async Task<TrendingResult> RefreshNowAsync(PluginConfiguration config, CancellationToken cancellationToken)
     {
-        if (_cachedResult is not null && _cacheKey == key && _cacheValidUntil > DateTimeOffset.UtcNow)
+        _cachedResult = null;
+        _cacheKey = string.Empty;
+        _retryNotBefore = DateTimeOffset.MinValue;
+        return await GetTrendingAsync(config, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void Store(TrendingResult result, string key, int cacheMinutes)
+    {
+        _cachedResult = result;
+        _cacheKey = key;
+        _cacheValidUntil = DateTimeOffset.UtcNow.AddMinutes(cacheMinutes);
+    }
+
+    private static void StartBackgroundRefresh(string key, PluginConfiguration config, string window, int movieLimit, int showLimit, int cacheMinutes)
+    {
+        lock (RefreshLock)
         {
-            result = _cachedResult;
-            return true;
+            if (_refreshTask is { IsCompleted: false } || _retryNotBefore > DateTimeOffset.UtcNow)
+            {
+                return;
+            }
+
+            _refreshTask = Task.Run(async () =>
+            {
+                try
+                {
+                    using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(45));
+                    TrendingResult? fetched = await FetchChainAsync(config, window, movieLimit, showLimit, timeout.Token).ConfigureAwait(false);
+                    if (fetched is null)
+                    {
+                        // Keep serving the stale chart; try again after the backoff.
+                        _retryNotBefore = DateTimeOffset.UtcNow + FailureBackoff;
+                        return;
+                    }
+
+                    Store(fetched, key, cacheMinutes);
+                }
+                catch
+                {
+                    _retryNotBefore = DateTimeOffset.UtcNow + FailureBackoff;
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Walks the provider chain and returns the first usable chart, or null if none answered.
+    /// </summary>
+    private static async Task<TrendingResult?> FetchChainAsync(PluginConfiguration config, string window, int movieLimit, int showLimit, CancellationToken cancellationToken)
+    {
+        foreach (string provider in ResolveProviderChain(config))
+        {
+            TrendingResult result;
+            try
+            {
+                result = await FetchFromProviderAsync(provider, config, window, movieLimit, showLimit, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (result.Movies.Count > 0 || result.Shows.Count > 0)
+            {
+                return result;
+            }
         }
 
-        result = null!;
-        return false;
+        return null;
     }
 
     private static HttpClient CreateHttpClient()
     {
         HttpClient client = new()
         {
-            Timeout = TimeSpan.FromSeconds(30)
+            Timeout = TimeSpan.FromSeconds(12)
         };
 
         // Some of the upstream endpoints reject requests without a user agent.
@@ -440,14 +508,38 @@ public static class TrendingService
 
     private static async Task<T?> GetJsonAsync<T>(string url, Action<HttpRequestMessage>? configureRequest, CancellationToken cancellationToken)
     {
-        using HttpRequestMessage request = new(HttpMethod.Get, url);
-        configureRequest?.Invoke(request);
+        // One retry covers the common case of a dropped connection or a 5xx/429 blip without
+        // doubling the wait on a genuine outage (the client timeout is short).
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                using HttpRequestMessage request = new(HttpMethod.Get, url);
+                configureRequest?.Invoke(request);
 
-        using HttpResponseMessage response = await HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+                using HttpResponseMessage response = await HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
 
-        await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
+                await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (attempt == 0 && !cancellationToken.IsCancellationRequested && IsTransient(ex))
+            {
+                await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static bool IsTransient(Exception ex)
+    {
+        return ex switch
+        {
+            HttpRequestException http => http.StatusCode is null
+                or System.Net.HttpStatusCode.TooManyRequests
+                or >= System.Net.HttpStatusCode.InternalServerError,
+            TaskCanceledException => true, // client timeout, not caller cancellation
+            _ => false
+        };
     }
 
     /// <summary>

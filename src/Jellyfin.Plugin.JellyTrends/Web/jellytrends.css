@@ -1,7 +1,8 @@
 /*
- * The rows reuse Jellyfin's own card and section classes so they match the native sections
- * (Continue Watching, More Like This). Only what Jellyfin does not already provide is
- * defined here: the horizontal scroller, the rank badge, and the size scaling.
+ * The rows reuse Jellyfin's own section, scroller and card classes so they match the native
+ * sections (Continue Watching, Next Up). Only what Jellyfin does not already provide is
+ * defined here: the poster fill, the rank badge, the size scaling and a plain-CSS scroller
+ * for clients that lack Jellyfin's own.
  */
 
 #jellytrends-root {
@@ -9,6 +10,7 @@
     --jt-text-scale: 1;
 }
 
+/* Plain scroller, used only when Jellyfin's emby-scroller is unavailable. */
 .jellytrends-row {
     display: flex;
     flex-wrap: nowrap;
@@ -28,6 +30,11 @@
     background: rgba(255, 255, 255, 0.25);
 }
 
+.jellytrends-slider {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
 .jellytrends-card {
     flex: 0 0 auto;
     scroll-snap-align: start;
@@ -35,10 +42,20 @@
 }
 
 .jellytrends-link {
-    background-position: center center;
-    background-size: cover;
-    background-repeat: no-repeat;
     display: block;
+    overflow: hidden;
+    background-color: rgba(127, 127, 127, 0.18);
+}
+
+.jellytrends-poster {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .jellytrends-noimage {
@@ -54,17 +71,17 @@
 
 .jellytrends-rank {
     position: absolute;
-    top: 0.35em;
-    left: 0.35em;
+    top: 0.45em;
+    left: 0.45em;
     z-index: 1;
-    font-weight: 700;
-    font-size: calc(0.9em * var(--jt-text-scale));
+    font-weight: 600;
+    font-size: calc(0.85em * var(--jt-text-scale));
     line-height: 1;
-    padding: 0.3em 0.5em;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.72);
+    padding: 0.3em 0.55em;
+    border-radius: 0.3em;
+    background: rgba(0, 0, 0, 0.7);
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
     pointer-events: none;
 }
 
@@ -77,7 +94,8 @@
     text-decoration: none;
 }
 
-.jellytrends-textlink:hover {
+.jellytrends-textlink:hover,
+.jellytrends-textlink:focus-visible {
     text-decoration: underline;
 }
 

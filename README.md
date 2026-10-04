@@ -20,27 +20,38 @@ ranks online, not where it ranks inside your shelf.
 - Matches charts to your library by IMDb / TMDB / TVDB id first, then by title and year.
 - Keeps the online chart position on the rank badge (toggleable).
 - Row size is configurable — 10 is the default, anything from 1 to 50 works.
-- Renders with Jellyfin's own card and section styles, so the rows sit alongside
-  Continue Watching and More Like This without looking bolted on.
+- Renders with Jellyfin's own section, scroller and card markup, so the rows sit alongside
+  Continue Watching and Next Up like a built-in feature: same cards, same arrows, same hover,
+  same remote/gamepad focus.
+- Row headings are editable (`{n}` stands for the row size).
 
 ## How It Performs
 
-Matching runs on the server. Jellyfin does not expose provider-id filtering through the HTTP
-item API, so a client that matched charts itself would have to download the entire library
-and index it locally — on every home load. Instead the plugin reads the library in process
-and the browser receives only the handful of rows it draws.
-
-One request (`GET /JellyTrends/rows`) returns both the rows and the display settings, so a
-render costs a single round trip. Charts, matched rows and the injected assets are all
-cached, and the assets revalidate with an ETag.
-
-The DOM observer that re-attaches the rows watches `#homeTab` only, never `document.body`.
-That matters most alongside Media Bar, whose slideshow lives on `document.body` and mutates
-continuously as slides transition and artwork loads.
+- **Matching runs on the server.** Jellyfin does not expose provider-id filtering through the
+  HTTP item API, so a client that matched charts itself would have to download the whole
+  library on every home load. The plugin reads the library in process and the browser only
+  receives the handful of rows it draws.
+- **One request per render** (`GET /JellyTrends/rows`) returns rows and display settings
+  together. Matched rows are cached per user and cleared the moment a title is added to or
+  removed from the library.
+- **Charts never block the home screen.** Once a chart has been fetched it is always served
+  instantly; when it expires it is refreshed in the background (stale-while-revalidate).
+  Provider pages are fetched concurrently, transient failures are retried once, and a
+  provider outage backs off for two minutes instead of hanging every home load.
+- **Instant repaints.** The browser keeps the last rows in memory, draws them immediately and
+  only repaints if the refreshed answer differs, so the DOM under your cursor is never
+  swapped out from under a click. Posters carry Jellyfin's image tag, so they are cached
+  exactly like native cards, and lazy-load as you scroll.
+- **Cheap observation.** The re-attach observer watches `#homeTab` only and does nothing
+  unless the rows have actually gone missing. That matters alongside Media Bar, whose
+  slideshow mutates the page continuously.
+- **No stale scripts.** Asset URLs carry the plugin version, so an update takes effect
+  immediately in browsers and in the Android/iOS WebViews.
 
 ## Requirements
 
-- Jellyfin **10.11.0 or newer** (built and tested against 10.11.11).
+- Jellyfin **10.10** or **10.11** (the catalogue serves the right build for your server
+  automatically). Builds for each line are compiled against that line's own Jellyfin packages.
 - The [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation)
   plugin, which is what lets JellyTrends inject the rows into the web client.
 
@@ -79,7 +90,8 @@ container would miss that offset and end up hidden behind the slideshow.
 3. Install **File Transformation** if you have not already.
 4. Refresh the catalog, install `JellyTrends`, then restart Jellyfin.
 
-A restart is required after enabling the rows: the injection is registered by a startup task.
+The injection is registered at startup and checks your settings on every page load, so
+toggling the rows on or off needs no restart. Hard-refresh the client once after installing.
 
 ## Trending Sources
 
@@ -113,6 +125,7 @@ Dashboard → Plugins → JellyTrends.
 | --- | --- | --- |
 | Enable plugin | on | Master switch |
 | Show trending rows on Home | on | Turns the web injection on or off |
+| Movie / Show row heading | `Top {n} … In Your Library` | `{n}` becomes the row size |
 | Source | Automatic | Which chart provider to use |
 | TMDB API key | empty | Unlocks TMDB trending |
 | Trakt Client ID | empty | Unlocks Trakt trending |
@@ -143,8 +156,8 @@ problems in one click:
 1. Confirm **File Transformation** is installed and matches your Jellyfin version. It ships
    one release per Jellyfin version.
 2. Confirm both *Enable plugin* and *Show trending rows on Home* are on.
-3. **Restart Jellyfin.** The injection is registered by a startup task, so a config change
-   alone is not enough.
+3. **Restart Jellyfin** after installing JellyTrends or File Transformation, so the startup
+   task can register the injection.
 4. **Hard-refresh the client** (Ctrl+Shift+R). The injected `index.html` is cached by
    browsers and by the Android/iOS WebViews.
 
@@ -191,50 +204,42 @@ On the Home page, press F12 and run:
 
 ## Endpoints
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /JellyTrends/rows` | Matched rows plus display settings, in one response |
-| `GET /JellyTrends/trending` | Raw charts before library matching, for diagnostics |
-| `POST /JellyTrends/test` | Refetches and reports which source answered |
-| `GET /JellyTrends/assets/{file}` | Serves the injected JS and CSS, with ETag revalidation |
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `GET /JellyTrends/rows` | signed-in user | Matched rows plus display settings, scoped to the caller's library |
+| `GET /JellyTrends/trending` | signed-in user | Raw charts before library matching, for diagnostics |
+| `POST /JellyTrends/test` | administrator | Refetches and reports which source answered |
+| `GET /JellyTrends/assets/{file}` | none | Serves the injected JS and CSS, with ETag revalidation |
 
 ## For Maintainers
 
-Build (Jellyfin 10.11 targets `net9.0`, so a .NET 9 SDK is required):
+Each Jellyfin line needs its own binary, so the project builds against one Jellyfin version
+at a time:
 
-```powershell
-dotnet build JellyTrends.sln -c Release
+```sh
+dotnet build JellyTrends.sln -c Release                              # 10.11 (net9.0), the default
+dotnet build JellyTrends.sln -c Release -p:JellyfinVersion=10.10.7   # 10.10 (net8.0)
+dotnet build JellyTrends.sln -c Release -p:JellyfinVersion=12.0.0    # 12.x (net10.0), compile-checked only
 ```
 
-Create the release zip and refresh the manifest:
+Cut a release (builds every target, writes `dist/*.zip` and `repo/manifest.json`):
 
-```powershell
-./scripts/New-Release.ps1 -Version 0.2.0.1 -JellyfinVersion 10.11.11 -Owner marceljhuber -Repository JellyTrends -UseRawRepoZip $true
+```sh
+python scripts/release.py --version 0.3.0 --changelog "What changed"
 ```
 
-The script writes `dist/Release-<jellyfin-version>.zip` and `repo/manifest.json`. `targetAbi`
-is pinned to the start of the minor line (`10.11.0.0`) so the plugin installs on every patch
-release of it.
+Versions are `<version>.<n>` where `n` is 0 for 10.10 and 1 for 10.11, so a 10.11 server —
+which can install either entry — always picks its own build. Then commit, force-adding the
+zips because `dist/` is git-ignored but the manifest points at it:
 
-Then commit and push. `dist/` is in `.gitignore`, but the manifest's `sourceUrl` points at
-the zip on `raw.githubusercontent.com`, so the zip **must** be force-added or the plugin will
-appear in the catalogue and fail to download:
-
-```powershell
-git add -A
-git add -f dist/Release-10.11.11.zip
-git commit -m "Release 0.2.0.1"
-git push origin master
+```sh
+git add -A && git add -f dist/*.zip
+git commit -m "Release 0.3.0" && git push origin master
 ```
 
-Verify the published artifacts afterwards — the manifest `checksum` must match the MD5 of the
-zip that GitHub is actually serving:
+Afterwards confirm each manifest `checksum` equals the MD5 of the zip GitHub actually serves.
+Keep `build.yaml` in step with the released version.
 
-```powershell
-(Invoke-RestMethod "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/repo/manifest.json")[0].versions[0].checksum
-Invoke-WebRequest "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/Release-10.11.11.zip" -OutFile "$env:TEMP\jt.zip"
-(Get-FileHash "$env:TEMP\jt.zip" -Algorithm MD5).Hash
-```
+## License
 
-Keep `build.yaml` in step with the released version — it carries the same metadata for the
-Jellyfin plugin build tooling.
+GPL-3.0, as required for plugins compiled against Jellyfin's packages. See [LICENSE](LICENSE).

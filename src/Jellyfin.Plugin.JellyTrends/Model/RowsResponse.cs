@@ -15,6 +15,10 @@ public sealed class RowsResponse
 
     public bool ShowOnlineRank { get; set; }
 
+    public string MoviesTitle { get; set; } = string.Empty;
+
+    public string ShowsTitle { get; set; } = string.Empty;
+
     public int CardScalePercent { get; set; }
 
     public int TextScalePercent { get; set; }

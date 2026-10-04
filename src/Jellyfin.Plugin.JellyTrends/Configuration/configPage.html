@@ -25,8 +25,7 @@
                     </label>
                     <div class="fieldDescription">
                         Requires the File Transformation plugin. Covers Jellyfin Web, the Android and iOS
-                        apps, and Jellyfin Media Player on Windows, macOS and Linux. Restart Jellyfin after
-                        turning this on.
+                        apps, and Jellyfin Media Player on Windows, macOS and Linux.
                     </div>
                 </div>
 
@@ -88,6 +87,17 @@
                         How many titles each row shows. 10 gives the classic Top 10 look; the row headings
                         follow this number automatically.
                     </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="MoviesRowTitle">Movie row heading</label>
+                    <input id="MoviesRowTitle" type="text" is="emby-input" />
+                    <div class="fieldDescription">Use {n} for the row size. Leave empty for the default.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="ShowsRowTitle">Show row heading</label>
+                    <input id="ShowsRowTitle" type="text" is="emby-input" />
                 </div>
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
@@ -189,6 +199,8 @@
                     set('TraktClientId', config.TraktClientId || '');
                     set('TrendingWindow', config.TrendingWindow || 'week');
                     set('MaxDisplayItems', config.MaxDisplayItems || 10);
+                    set('MoviesRowTitle', config.MoviesRowTitle || '');
+                    set('ShowsRowTitle', config.ShowsRowTitle || '');
                     check('ShowOnlineRank', config.ShowOnlineRank);
                     set('CardScalePercent', config.CardScalePercent || 100);
                     set('TextScalePercent', config.TextScalePercent || 100);
@@ -230,6 +242,8 @@
                     config.TraktClientId = (value('TraktClientId') || '').trim();
                     config.TrendingWindow = value('TrendingWindow') || 'week';
                     config.MaxDisplayItems = number('MaxDisplayItems', 10);
+                    config.MoviesRowTitle = (value('MoviesRowTitle') || '').trim();
+                    config.ShowsRowTitle = (value('ShowsRowTitle') || '').trim();
                     config.ShowOnlineRank = checked('ShowOnlineRank');
                     config.CardScalePercent = number('CardScalePercent', 100);
                     config.TextScalePercent = number('TextScalePercent', 100);

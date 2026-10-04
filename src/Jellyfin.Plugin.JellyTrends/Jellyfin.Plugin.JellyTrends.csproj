@@ -1,16 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <JellyfinVersion>10.11.11</JellyfinVersion>
-    <JellyfinNugetVersion Condition="!$(JellyfinVersion.StartsWith('10.11'))">$(JellyfinVersion)</JellyfinNugetVersion>
-    <JellyfinNugetVersion Condition="$(JellyfinVersion.StartsWith('10.11'))">$(JellyfinVersion)</JellyfinNugetVersion>
+    <!-- Plugins are compiled against one Jellyfin version each: 10.11 runs on net9.0, 10.10 on net8.0. -->
+    <JellyfinVersion Condition="'$(JellyfinVersion)' == ''">10.11.11</JellyfinVersion>
+    <JellyfinNugetVersion>$(JellyfinVersion)</JellyfinNugetVersion>
     <TargetFramework Condition="$(JellyfinVersion.StartsWith('10.11'))">net9.0</TargetFramework>
-    <TargetFramework Condition="'$(JellyfinVersion)' == '10.10.7'">net8.0</TargetFramework>
+    <TargetFramework Condition="$(JellyfinVersion.StartsWith('10.10'))">net8.0</TargetFramework>
+    <TargetFramework Condition="$(JellyfinVersion.StartsWith('12.'))">net10.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.JellyTrends</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Version>0.2.1.0</Version>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyTitle>Jellyfin.Plugin.JellyTrends</AssemblyTitle>
+    <Product>JellyTrends</Product>
+    <!-- The last component orders builds: on a 10.11 server both are installable, and 10.11 must win. -->
+    <PluginVersion>0.3.0</PluginVersion>
+    <Version Condition="$(JellyfinVersion.StartsWith('10.11'))">$(PluginVersion).1</Version>
+    <Version Condition="$(JellyfinVersion.StartsWith('10.10'))">$(PluginVersion).0</Version>
+    <Version Condition="$(JellyfinVersion.StartsWith('12.'))">$(PluginVersion).2</Version>
+    <Authors>marceljhuber</Authors>
+    <Description>Netflix-style trending rows for the Jellyfin home screen, built from your own library.</Description>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

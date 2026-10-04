@@ -20,30 +20,35 @@ public sealed class StartupService : IScheduledTask
 
     public string Category => "Startup Services";
 
-    public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
+    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        if (!Plugin.Instance.Configuration.EnableHomeRows)
-        {
-            return Task.CompletedTask;
-        }
-
+        // Registered regardless of EnableHomeRows: the transformation itself checks the setting
+        // on every request, so toggling it takes effect without a restart.
         lock (SyncLock)
         {
             if (_registrationSucceeded)
             {
-                return Task.CompletedTask;
+                return;
             }
         }
 
+        // File Transformation may finish loading after this plugin, so poll for it rather than
+        // trying once and giving up until the next restart.
+        for (int attempt = 0; attempt < 24 && !cancellationToken.IsCancellationRequested; attempt++)
+        {
+            if (TryRegister())
+            {
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private bool TryRegister()
+    {
         try
         {
-            JObject payload = new();
-            payload.Add("id", "d316d401-b0e6-4618-95a0-ba897f59547f");
-            payload.Add("fileNamePattern", "index.html");
-            payload.Add("callbackAssembly", GetType().Assembly.FullName);
-            payload.Add("callbackClass", typeof(TransformationPatches).FullName);
-            payload.Add("callbackMethod", nameof(TransformationPatches.IndexHtml));
-
             Assembly? fileTransformationAssembly = AssemblyLoadContext.All
                 .SelectMany(x => x.Assemblies)
                 .FirstOrDefault(x => x.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
@@ -52,8 +57,17 @@ public sealed class StartupService : IScheduledTask
             MethodInfo? registerMethod = pluginInterfaceType?.GetMethod("RegisterTransformation");
             if (registerMethod is null)
             {
-                return Task.CompletedTask;
+                return false;
             }
+
+            JObject payload = new()
+            {
+                { "id", "d316d401-b0e6-4618-95a0-ba897f59547f" },
+                { "fileNamePattern", "index.html" },
+                { "callbackAssembly", GetType().Assembly.FullName },
+                { "callbackClass", typeof(TransformationPatches).FullName },
+                { "callbackMethod", nameof(TransformationPatches.IndexHtml) }
+            };
 
             registerMethod.Invoke(null, [payload]);
 
@@ -61,14 +75,14 @@ public sealed class StartupService : IScheduledTask
             {
                 _registrationSucceeded = true;
             }
+
+            return true;
         }
         catch
         {
-            // Do not block server startup if transformation registration fails.
-            // Keep retrying on future task runs until registration succeeds.
+            // Never block server startup; the next poll tries again.
+            return false;
         }
-
-        return Task.CompletedTask;
     }
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
@@ -77,7 +91,7 @@ public sealed class StartupService : IScheduledTask
         [
             new TaskTriggerInfo
             {
-#if NET9_0
+#if NET9_0_OR_GREATER
                 Type = TaskTriggerInfoType.StartupTrigger
 #else
                 Type = TaskTriggerInfo.TriggerStartup
