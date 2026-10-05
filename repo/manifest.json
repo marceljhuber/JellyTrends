@@ -9,23 +9,23 @@
     "imageUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
     "versions": [
       {
-        "version": "0.3.2.1",
-        "changelog": "Badge top-right, rows aligned with native sections using Jellyfin's own scroller, instant paint from cached rows.",
+        "version": "0.3.3.1",
+        "changelog": "Fix console error from arrow buttons connecting before the scroller was ready.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.2.1-jellyfin-10.11.zip",
-        "checksum": "C11EDC83EE71D9773741673F114E4761",
-        "timestamp": "2026-10-05T00:13:23Z",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.3.1-jellyfin-10.11.zip",
+        "checksum": "0DBCFA4CBA5C42C8F3B4E0D03A2E2F0A",
+        "timestamp": "2026-10-05T00:18:06Z",
         "dependencies": [
           "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
         ]
       },
       {
-        "version": "0.3.2.0",
-        "changelog": "Badge top-right, rows aligned with native sections using Jellyfin's own scroller, instant paint from cached rows.",
+        "version": "0.3.3.0",
+        "changelog": "Fix console error from arrow buttons connecting before the scroller was ready.",
         "targetAbi": "10.10.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.2.0-jellyfin-10.10.zip",
-        "checksum": "4BCA921B68587CCCFE8A76A2A1CA02DC",
-        "timestamp": "2026-10-05T00:13:21Z",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.3.0-jellyfin-10.10.zip",
+        "checksum": "567A87358137F6814F193264D6579599",
+        "timestamp": "2026-10-05T00:18:04Z",
         "dependencies": [
           "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
         ]

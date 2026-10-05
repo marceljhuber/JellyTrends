@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.3
+
+**Fixed**
+
+- The arrow buttons were connected before Jellyfin had upgraded the scroller next to them, which
+  logged `addScrollEventListener is not a function` in the console. They are now added once the
+  scroller is ready.
+
 ## 0.3.2
 
 Layout and load-time fixes, verified against a live Jellyfin 10.11 in a real browser.

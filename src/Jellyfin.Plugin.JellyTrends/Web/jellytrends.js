@@ -236,7 +236,10 @@
         }
 
         var holder = document.createElement('div');
-        holder.innerHTML = SCROLL_BUTTONS +
+        // The arrow buttons are added after the scroller exists in the page and has been upgraded
+        // (see attachScrollButtons): connecting them earlier makes Jellyfin look up a scroller
+        // that is not ready yet.
+        holder.innerHTML =
             '<div is="emby-scroller" class="padded-top-focusscale padded-bottom-focusscale emby-scroller" data-centerfocus="true" data-scroll-mode-x="custom">' +
             '<div class="itemsContainer scrollSlider focuscontainer-x animatedScrollX jellytrends-slider" style="white-space: nowrap; will-change: transform; transition: transform 50ms ease-out;"></div>' +
             '</div>';
@@ -245,6 +248,35 @@
             section.appendChild(holder.firstChild);
         }
         return section;
+    }
+
+    function attachScrollButtons(root, attempt) {
+        var scrollers = root.querySelectorAll('[is="emby-scroller"]');
+        var ready = true;
+        for (var i = 0; i < scrollers.length; i++) {
+            if (typeof scrollers[i].addScrollEventListener !== 'function') {
+                ready = false;
+            }
+        }
+
+        // Jellyfin upgrades the scroller shortly after insertion; give it a moment, then add the
+        // buttons regardless so the arrows are never missing.
+        if (!ready && attempt < 20) {
+            setTimeout(function () { attachScrollButtons(root, attempt + 1); }, 50);
+            return;
+        }
+        if (!root.isConnected) {
+            return;
+        }
+
+        for (var j = 0; j < scrollers.length; j++) {
+            if (scrollers[j].previousElementSibling && scrollers[j].previousElementSibling.classList.contains('emby-scrollbuttons')) {
+                continue;
+            }
+            var temp = document.createElement('div');
+            temp.innerHTML = SCROLL_BUTTONS;
+            scrollers[j].parentNode.insertBefore(temp.firstChild, scrollers[j]);
+        }
     }
 
     function signature(rows) {
@@ -298,6 +330,7 @@
             }
 
             if (!plain) {
+                attachScrollButtons(root, 0);
                 verifyNativeScroller(rows, sig);
             }
             return true;
