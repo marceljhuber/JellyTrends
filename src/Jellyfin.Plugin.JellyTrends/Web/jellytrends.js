@@ -10,6 +10,9 @@
     var FRESH_MS = 5 * 60 * 1000;
     var RETRY_AFTER_FAILURE_MS = 30 * 1000;
     var PLAIN_KEY = 'jellytrends.plainScroller';
+    var ROWS_KEY = 'jellytrends.rows';
+    var SCROLLER_WAIT_MS = 3000;
+    var STORED_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
     var state = {
         rows: null,
@@ -21,7 +24,8 @@
         timer: null,
         observer: null,
         observedNode: null,
-        waitTries: 0
+        waitTries: 0,
+        firstEnsureAt: 0
     };
 
     function apiClient() {
@@ -79,15 +83,28 @@
         return Math.max(min, Math.min(max, parsed));
     }
 
+    /**
+     * Jellyfin's own home sections render with a scroller element that its own code upgrades
+     * (it is not a registered custom element in 10.11, so customElements cannot be asked).
+     * Seeing one in the page means the same markup will be upgraded for these rows too.
+     */
+    function nativeScrollerRendered() {
+        var found = document.querySelectorAll('#homeTab [is="emby-scroller"]');
+        for (var i = 0; i < found.length; i++) {
+            if (!found[i].closest('#' + ROOT_ID)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function usePlainScroller() {
         try {
             if (window.localStorage && localStorage.getItem(PLAIN_KEY) === '1') {
                 return true;
             }
         } catch (e) { /* storage may be blocked */ }
-        // Jellyfin registers its scroller as a customized built-in. When it is missing (older
-        // builds, trimmed clients) the plain CSS scroller below is used instead.
-        return !(window.customElements && customElements.get('emby-scroller'));
+        return !nativeScrollerRendered();
     }
 
     function markPlainScroller() {
@@ -112,8 +129,9 @@
         if (!item.ImageTag || !client || typeof client.getImageUrl !== 'function') {
             return null;
         }
-        // The tag makes the URL cacheable, exactly like Jellyfin's own cards.
-        return client.getImageUrl(item.Id, { type: 'Primary', maxHeight: 450, quality: 90, tag: item.ImageTag });
+        // Same size and quality as Jellyfin's own portrait cards, so the server's resized-image
+        // cache is shared with them, and the tag makes the URL browser-cacheable.
+        return client.getImageUrl(item.Id, { type: 'Primary', fillHeight: 372, fillWidth: 248, quality: 96, tag: item.ImageTag });
     }
 
     function el(tag, className) {
@@ -189,14 +207,20 @@
         return card;
     }
 
-    function createSection(title, items, showRank, plain) {
-        var section = el('div', 'verticalSection jellytrends-section');
+    var SCROLL_BUTTONS =
+        '<div is="emby-scrollbuttons" class="emby-scrollbuttons padded-right">' +
+        '<button type="button" is="paper-icon-button-light" data-ripple="false" data-direction="left" title="Previous" class="emby-scrollbuttons-button paper-icon-button-light" disabled=""><span class="material-icons chevron_left" aria-hidden="true"></span></button>' +
+        '<button type="button" is="paper-icon-button-light" data-ripple="false" data-direction="right" title="Next" class="emby-scrollbuttons-button paper-icon-button-light"><span class="material-icons chevron_right" aria-hidden="true"></span></button>' +
+        '</div>';
 
-        var titleContainer = el('div', 'sectionTitleContainer sectionTitleContainer-cards padded-left');
-        var heading = el('h2', 'sectionTitle sectionTitle-cards');
+    function createSection(title, items, showRank, plain) {
+        // Same structure Jellyfin's own home sections emit, so the scroller, its arrow buttons
+        // and the 53px inset all come from Jellyfin's own code and CSS.
+        var section = el('div', 'verticalSection emby-scroller-container jellytrends-section');
+
+        var heading = el('h2', 'sectionTitle sectionTitle-cards padded-left');
         heading.textContent = title;
-        titleContainer.appendChild(heading);
-        section.appendChild(titleContainer);
+        section.appendChild(heading);
 
         // Cards are assembled off-document so the browser lays out once, not once per card.
         var fragment = document.createDocumentFragment();
@@ -205,25 +229,21 @@
         }
 
         if (plain) {
-            var row = el('div', 'itemsContainer padded-left padded-right jellytrends-row');
+            var row = el('div', 'itemsContainer jellytrends-row');
             row.appendChild(fragment);
             section.appendChild(row);
             return section;
         }
 
-        // Jellyfin's own scroller: arrow buttons, wheel/touch handling and TV focus. The
-        // children are in place before it enters the document so it measures them on connect.
-        var scroller = document.createElement('div', { is: 'emby-scroller' });
-        scroller.setAttribute('is', 'emby-scroller');
-        scroller.className = 'padded-top-focusscale padded-bottom-focusscale jellytrends-scroller';
-        scroller.setAttribute('data-horizontal', 'true');
-        scroller.setAttribute('data-mousewheel', 'false');
-        scroller.setAttribute('data-centerfocus', 'true');
-
-        var slider = el('div', 'itemsContainer scrollSlider focuscontainer-x jellytrends-slider');
-        slider.appendChild(fragment);
-        scroller.appendChild(slider);
-        section.appendChild(scroller);
+        var holder = document.createElement('div');
+        holder.innerHTML = SCROLL_BUTTONS +
+            '<div is="emby-scroller" class="padded-top-focusscale padded-bottom-focusscale emby-scroller" data-centerfocus="true" data-scroll-mode-x="custom">' +
+            '<div class="itemsContainer scrollSlider focuscontainer-x animatedScrollX jellytrends-slider" style="white-space: nowrap; will-change: transform; transition: transform 50ms ease-out;"></div>' +
+            '</div>';
+        holder.querySelector('.scrollSlider').appendChild(fragment);
+        while (holder.firstChild) {
+            section.appendChild(holder.firstChild);
+        }
         return section;
     }
 
@@ -270,6 +290,12 @@
             }
 
             target.insertBefore(root, target.firstChild);
+
+            // The plain scroller has no inset of its own: copy the one the heading uses.
+            var headingEl = root.querySelector('.sectionTitle');
+            if (plain && headingEl) {
+                root.style.setProperty('--jt-pad', getComputedStyle(headingEl).paddingLeft);
+            }
 
             if (!plain) {
                 verifyNativeScroller(rows, sig);
@@ -319,7 +345,45 @@
             return;
         }
 
+        // Draw together with Jellyfin's own sections so the rows can use its scroller. If those
+        // never show up, draw anyway with the plain scroller rather than leave the rows out.
+        if (!nativeScrollerRendered() && !localPlainForced() && (Date.now() - state.firstEnsureAt) < SCROLLER_WAIT_MS) {
+            scheduleEnsure(100);
+            return;
+        }
+
         mount(rows, sig);
+    }
+
+    function localPlainForced() {
+        try {
+            return !!(window.localStorage && localStorage.getItem(PLAIN_KEY) === '1');
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * The last answer is kept in localStorage, tied to the user, so a cold page load can draw
+     * the rows immediately and let the network refresh them afterwards.
+     */
+    function loadStoredRows(userId) {
+        try {
+            var raw = window.localStorage && localStorage.getItem(ROWS_KEY);
+            var stored = raw ? JSON.parse(raw) : null;
+            if (stored && stored.userId === userId && stored.rows && (Date.now() - stored.at) < STORED_MAX_AGE_MS) {
+                return stored;
+            }
+        } catch (e) { /* storage may be blocked or corrupt */ }
+        return null;
+    }
+
+    function storeRows(userId, rows) {
+        try {
+            if (window.localStorage) {
+                localStorage.setItem(ROWS_KEY, JSON.stringify({ userId: userId, at: Date.now(), rows: rows }));
+            }
+        } catch (e) { /* storage may be blocked or full */ }
     }
 
     /**
@@ -342,6 +406,7 @@
             state.rowsAt = Date.now();
             state.userId = userId;
             state.failedAt = 0;
+            storeRows(userId, state.rows);
             return state.rows;
         }).catch(function (error) {
             state.failedAt = Date.now();
@@ -364,12 +429,15 @@
 
         if (!apiClient() || !loggedIn()) {
             // jellyfin-web creates ApiClient and signs in asynchronously on a cold start.
-            if (state.waitTries++ < 120) {
-                scheduleEnsure(500);
+            if (state.waitTries++ < 400) {
+                scheduleEnsure(150);
             }
             return;
         }
         state.waitTries = 0;
+        if (!state.firstEnsureAt) {
+            state.firstEnsureAt = Date.now();
+        }
 
         var userId = currentUserId();
         if (state.userId !== null && state.userId !== userId) {
@@ -380,6 +448,15 @@
         }
 
         observeHome();
+
+        if (!state.rows) {
+            var stored = loadStoredRows(userId);
+            if (stored) {
+                state.rows = stored.rows;
+                state.rowsAt = stored.at;
+                state.userId = userId;
+            }
+        }
 
         // Cached rows draw immediately; the refresh below only repaints if something changed.
         if (state.rows) {
@@ -445,6 +522,7 @@
 
     function handleNavigation() {
         if (onHome()) {
+            state.firstEnsureAt = Date.now();
             scheduleEnsure(60);
         }
     }

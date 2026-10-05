@@ -9,23 +9,23 @@
     "imageUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
     "versions": [
       {
-        "version": "0.3.1.1",
-        "changelog": "Hotfix: stop injecting into JS chunks, which broke the login page in 0.3.0. Update immediately.",
+        "version": "0.3.2.1",
+        "changelog": "Badge top-right, rows aligned with native sections using Jellyfin's own scroller, instant paint from cached rows.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.1.1-jellyfin-10.11.zip",
-        "checksum": "3EB0708BA2569B113915D92D0C2E6A7F",
-        "timestamp": "2026-10-05T00:02:34Z",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.2.1-jellyfin-10.11.zip",
+        "checksum": "C11EDC83EE71D9773741673F114E4761",
+        "timestamp": "2026-10-05T00:13:23Z",
         "dependencies": [
           "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
         ]
       },
       {
-        "version": "0.3.1.0",
-        "changelog": "Hotfix: stop injecting into JS chunks, which broke the login page in 0.3.0. Update immediately.",
+        "version": "0.3.2.0",
+        "changelog": "Badge top-right, rows aligned with native sections using Jellyfin's own scroller, instant paint from cached rows.",
         "targetAbi": "10.10.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.1.0-jellyfin-10.10.zip",
-        "checksum": "ABADE3C9C96E5726B36963136063373D",
-        "timestamp": "2026-10-05T00:02:33Z",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.2.0-jellyfin-10.10.zip",
+        "checksum": "4BCA921B68587CCCFE8A76A2A1CA02DC",
+        "timestamp": "2026-10-05T00:13:21Z",
         "dependencies": [
           "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
         ]

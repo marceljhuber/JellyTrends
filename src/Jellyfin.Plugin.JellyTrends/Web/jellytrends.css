@@ -11,7 +11,9 @@
 }
 
 /* Plain scroller, used only when Jellyfin's emby-scroller is unavailable. */
-.jellytrends-row {
+#jellytrends-root .jellytrends-row {
+    padding-left: var(--jt-pad, 0);
+    padding-right: var(--jt-pad, 0);
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -28,11 +30,6 @@
 .jellytrends-row::-webkit-scrollbar-thumb {
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.25);
-}
-
-.jellytrends-slider {
-    display: flex;
-    flex-wrap: nowrap;
 }
 
 .jellytrends-card {
@@ -71,8 +68,9 @@
 
 .jellytrends-rank {
     position: absolute;
+    /* Top right: other plugins put their resolution/quality tags top left. */
     top: 0.45em;
-    left: 0.45em;
+    right: 0.45em;
     z-index: 1;
     font-weight: 600;
     font-size: calc(0.85em * var(--jt-text-scale));

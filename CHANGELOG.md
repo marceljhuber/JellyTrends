@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.2
+
+Layout and load-time fixes, verified against a live Jellyfin 10.11 in a real browser.
+
+**Fixed**
+
+- The `#N` chart badge sat top-left, on top of resolution/quality tags added by other plugins.
+  It is now top-right.
+- Rows were not aligned with Jellyfin's own sections: the cards started at the screen edge while
+  the heading was inset. Rows now use the exact markup of Jellyfin's home sections, so the
+  inset, card size (205 px at 1600 px wide), arrow buttons and scrolling are Jellyfin's own and
+  line up with "My Media" and the rest.
+- Native scroller detection used `customElements.get`, but Jellyfin 10.11 does not register
+  its scroller that way, so the native scroller was never used. Detection now looks for a
+  rendered Jellyfin scroller on the page.
+
+**Changed — performance**
+
+- The last rows are kept in localStorage (per user, up to 12 hours), so a cold page load paints
+  immediately and the network answer only repaints if it differs.
+- Rows are drawn together with Jellyfin's own sections instead of earlier or later (they now
+  appear within about 60 ms of them), and startup polling is 150 ms instead of 500 ms.
+- Posters are requested with the same size and quality as Jellyfin's own portrait cards
+  (`fillHeight=372&fillWidth=248&quality=96`), so the server's resized-image cache is shared.
+
 ## 0.3.1
 
 **Fixed**
