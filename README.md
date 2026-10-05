@@ -5,9 +5,23 @@ titles you actually own — and keeping each title's real position in the online
 
 ![JellyTrends Banner](assets/jellytrends-banner.png)
 
-## Screenshot
+## Screenshots
 
-![JellyTrends Home Example](assets/jellytrends-home-example.png)
+The rows sit in the home screen like Jellyfin's own sections: same cards, same inset, same
+arrow buttons. The `#N` badge (top right) is the title's position in the online chart.
+
+![Top 10 Movies and Shows rows on the Jellyfin home screen](assets/jellytrends-home.png)
+
+<table>
+  <tr>
+    <td width="34%"><img src="assets/jellytrends-mobile.png" alt="JellyTrends on a phone"></td>
+    <td width="66%"><img src="assets/jellytrends-settings.png" alt="JellyTrends settings page"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>On a phone</sub></td>
+    <td align="center"><sub>Dashboard → Plugins → JellyTrends</sub></td>
+  </tr>
+</table>
 
 If *Dune: Prophecy* sits at #36 worldwide and it is the sixth title you own from that chart,
 the badge still reads `#36`. That is the point of the rows: they tell you where a title
@@ -21,8 +35,9 @@ ranks online, not where it ranks inside your shelf.
 - Keeps the online chart position on the rank badge (toggleable).
 - Row size is configurable — 10 is the default, anything from 1 to 50 works.
 - Renders with Jellyfin's own section, scroller and card markup, so the rows sit alongside
-  Continue Watching and Next Up like a built-in feature: same cards, same arrows, same hover,
-  same remote/gamepad focus.
+  Continue Watching and Next Up like a built-in feature: same cards, same arrows, same inset, and
+  Jellyfin's own scroller for mouse, touch and remote/gamepad focus. (Native cards show a play
+  button on hover; these open the details page instead.)
 - Row headings are editable (`{n}` stands for the row size).
 
 ## How It Performs
@@ -161,11 +176,12 @@ problems in one click:
 4. **Hard-refresh the client** (Ctrl+Shift+R). The injected `index.html` is cached by
    browsers and by the Android/iOS WebViews.
 
-### Rows are empty, or there is blank space where they should be
+### The login page or a details page is blank (0.3.0 only)
 
-Blank space usually means the rows rendered somewhere they are not visible, which happens
-when they mount outside `.homeSectionsContainer`. That was a bug in 0.2.0.0 alongside
-Media Bar — **update to 0.2.0.1 or newer**.
+0.3.0 broke lazily loaded pages of the web client. **Update to 0.3.1 or newer**, then
+hard-refresh.
+
+### Rows are empty
 
 Empty rows usually mean nothing in the chart matched your library. TMDB's weekly trending
 chart is almost entirely brand-new releases, so an older library can legitimately match none
@@ -185,6 +201,7 @@ On the Home page, press F12 and run:
     scriptLoaded: !!window.JellyTrendsInit,
     rootInDom:    !!document.getElementById('jellytrends-root'),
     mountTarget:  !!document.querySelector('#homeTab .homeSectionsContainer'),
+    nativeScroller: !!document.querySelector('#jellytrends-root [is="emby-scroller"]'),
     enabled: rows.Enabled,
     source:  rows.Source,
     chartSize:   {movies: (chart.Movies||[]).length, shows: (chart.Shows||[]).length},

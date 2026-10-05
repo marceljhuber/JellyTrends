@@ -9,23 +9,23 @@
     "imageUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
     "versions": [
       {
-        "version": "0.3.3.1",
-        "changelog": "Fix console error from arrow buttons connecting before the scroller was ready.",
+        "version": "0.3.4.1",
+        "changelog": "Hide scroll arrows on phones, new screenshots and docs.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.3.1-jellyfin-10.11.zip",
-        "checksum": "0DBCFA4CBA5C42C8F3B4E0D03A2E2F0A",
-        "timestamp": "2026-10-05T00:18:06Z",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.4.1-jellyfin-10.11.zip",
+        "checksum": "06B2060A6F438B7AE812EA65775B75EE",
+        "timestamp": "2026-10-05T00:53:51Z",
         "dependencies": [
           "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
         ]
       },
       {
-        "version": "0.3.3.0",
-        "changelog": "Fix console error from arrow buttons connecting before the scroller was ready.",
+        "version": "0.3.4.0",
+        "changelog": "Hide scroll arrows on phones, new screenshots and docs.",
         "targetAbi": "10.10.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.3.0-jellyfin-10.10.zip",
-        "checksum": "567A87358137F6814F193264D6579599",
-        "timestamp": "2026-10-05T00:18:04Z",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.4.0-jellyfin-10.10.zip",
+        "checksum": "FF9988C8F0CEBB9BEECFF2B2D5EF5DDB",
+        "timestamp": "2026-10-05T00:53:50Z",
         "dependencies": [
           "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
         ]

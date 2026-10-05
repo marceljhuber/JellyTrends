@@ -1,8 +1,9 @@
 # Assets
 
 - `jellytrends-banner.png` — catalogue banner (`imageUrl` in `repo/manifest.json`).
-- `jellytrends-home-example.png` — README screenshot of the home screen.
+- `jellytrends-home.png` — home screen, 1920x1080.
+- `jellytrends-mobile.png` — home screen on a phone (412x915 @2x).
+- `jellytrends-settings.png` — the plugin settings page.
 
-Retake the screenshot after UI changes: 16:9 window at 1920x1080 or wider, default Jellyfin
-theme, a library with at least ten titles from the current chart, the Home tab scrolled to
-the top.
+Retake them after UI changes: default Jellyfin theme, a library with at least ten titles from
+the current chart, Home tab scrolled so both rows are visible.

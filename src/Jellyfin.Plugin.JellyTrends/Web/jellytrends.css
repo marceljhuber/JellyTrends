@@ -100,3 +100,10 @@
 #jellytrends-root .sectionTitle {
     font-size: calc(1.6em * var(--jt-text-scale));
 }
+
+/* On phones the long headings would run into the arrow buttons; touch users swipe anyway. */
+@media (max-width: 600px) {
+    #jellytrends-root .emby-scrollbuttons {
+        display: none;
+    }
+}

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+
+- Phones: the scroll arrow buttons are hidden below 600 px wide, where the long headings ran
+  into them (touch users swipe).
+- README: new screenshots (home, phone, settings), corrected troubleshooting and claims.
+
 ## 0.3.3
 
 **Fixed**
