@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+**Fixed**
+
+- 0.3.0 broke the web client's login page and other lazy-loaded screens. File Transformation
+  matches `index.html` as a regex, so it also passed JS chunks such as
+  `session-login-index-html.<hash>.chunk.js` to the plugin, which appended its bootstrap
+  `<script>` markup to the JavaScript and caused `Unexpected token '<'`. Only real HTML
+  documents (starting with a doctype or `<html`) are modified now. **If you installed 0.3.0,
+  update immediately.**
+
 ## 0.3.0
 
 Reliability, native look, and multi-version support.

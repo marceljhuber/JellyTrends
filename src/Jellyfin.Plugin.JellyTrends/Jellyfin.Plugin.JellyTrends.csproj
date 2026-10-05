@@ -14,7 +14,7 @@
     <AssemblyTitle>Jellyfin.Plugin.JellyTrends</AssemblyTitle>
     <Product>JellyTrends</Product>
     <!-- The last component orders builds: on a 10.11 server both are installable, and 10.11 must win. -->
-    <PluginVersion>0.3.0</PluginVersion>
+    <PluginVersion>0.3.1</PluginVersion>
     <Version Condition="$(JellyfinVersion.StartsWith('10.11'))">$(PluginVersion).1</Version>
     <Version Condition="$(JellyfinVersion.StartsWith('10.10'))">$(PluginVersion).0</Version>
     <Version Condition="$(JellyfinVersion.StartsWith('12.'))">$(PluginVersion).2</Version>

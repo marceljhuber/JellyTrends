@@ -30,10 +30,17 @@ public static class TransformationPatches
             using TextReader reader = new StreamReader(stream);
             string importedHtml = reader.ReadToEnd();
 
+            // File Transformation matches "index.html" as a regex, so it also hands this
+            // callback JS chunks such as "session-login-index-html.<hash>.chunk.js". Appending
+            // markup to those breaks the whole web client, so only a real HTML document with a
+            // head is ever modified.
+            string head = original.TrimStart();
+            bool isDocument = head.StartsWith("<!doctype", StringComparison.OrdinalIgnoreCase)
+                || head.StartsWith("<html", StringComparison.OrdinalIgnoreCase);
             int headCloseIndex = original.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-            if (headCloseIndex < 0)
+            if (!isDocument || headCloseIndex < 0)
             {
-                return original + importedHtml.Replace("__JT_VERSION__", Plugin.Instance.Version.ToString(), StringComparison.Ordinal);
+                return original;
             }
 
             // The version in the asset URLs busts browser and WebView caches on upgrade, so a
