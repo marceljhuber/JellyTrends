@@ -213,6 +213,17 @@
         '<button type="button" is="paper-icon-button-light" data-ripple="false" data-direction="right" title="Next" class="emby-scrollbuttons-button paper-icon-button-light"><span class="material-icons chevron_right" aria-hidden="true"></span></button>' +
         '</div>';
 
+    function staticRowLifecycle(row) {
+        // Jellyfin's home tab calls pause()/resume() on every .itemsContainer,
+        // including these static custom rows. They have no playback observers
+        // or fetch subscriptions to suspend; the surrounding scroller owns its
+        // own animation lifecycle. Keep these methods local, never patch native
+        // containers or swallow lifecycle failures globally.
+        row.pause = function () {};
+        row.resume = function () {};
+        return row;
+    }
+
     function createSection(title, items, showRank, plain) {
         // Same structure Jellyfin's own home sections emit, so the scroller, its arrow buttons
         // and the 53px inset all come from Jellyfin's own code and CSS.
@@ -229,7 +240,7 @@
         }
 
         if (plain) {
-            var row = el('div', 'itemsContainer jellytrends-row');
+            var row = staticRowLifecycle(el('div', 'itemsContainer jellytrends-row'));
             row.appendChild(fragment);
             section.appendChild(row);
             return section;
@@ -243,7 +254,8 @@
             '<div is="emby-scroller" class="padded-top-focusscale padded-bottom-focusscale emby-scroller" data-centerfocus="true" data-scroll-mode-x="custom">' +
             '<div class="itemsContainer scrollSlider focuscontainer-x animatedScrollX jellytrends-slider" style="white-space: nowrap; will-change: transform; transition: transform 50ms ease-out;"></div>' +
             '</div>';
-        holder.querySelector('.scrollSlider').appendChild(fragment);
+        var slider = staticRowLifecycle(holder.querySelector('.scrollSlider'));
+        slider.appendChild(fragment);
         while (holder.firstChild) {
             section.appendChild(holder.firstChild);
         }

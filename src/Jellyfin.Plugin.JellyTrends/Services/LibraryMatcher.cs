@@ -107,7 +107,7 @@ public static class LibraryMatcher
         return index;
     }
 
-    private static string NormalizeTitle(string? title)
+    internal static string NormalizeTitle(string? title)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -122,7 +122,10 @@ public static class LibraryMatcher
         return WhitespaceRegex.Replace(normalized, " ").Trim();
     }
 
-    private sealed class LibraryIndex
+    /// <summary>Largest year difference still treated as the same title in loose matching.</summary>
+    internal const int MaxYearDelta = 4;
+
+    internal sealed class LibraryIndex
     {
         private readonly Dictionary<string, BaseItem> _byProvider = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, BaseItem> _byTitleYear = new(StringComparer.Ordinal);
@@ -202,11 +205,13 @@ public static class LibraryMatcher
             }
 
             BaseItem? closest = null;
+            BaseItem? undated = null;
             int closestDelta = int.MaxValue;
             foreach (BaseItem candidate in candidates)
             {
                 if (!candidate.ProductionYear.HasValue)
                 {
+                    undated ??= candidate;
                     continue;
                 }
 
@@ -218,7 +223,11 @@ public static class LibraryMatcher
                 }
             }
 
-            return closestDelta <= 4 ? closest : candidates[0];
+            // Within a few years is the same title listed with a festival/release/airing year.
+            // Anything further is a different film of the same name (a remake, an older series),
+            // which used to be returned anyway and put e.g. Dune (1984) in a 2021 trending slot.
+            // Only an item without any year is still accepted, since it cannot be ruled out.
+            return closestDelta <= MaxYearDelta ? closest : undated;
         }
 
         private BaseItem? FindByProvider(string provider, string? id)

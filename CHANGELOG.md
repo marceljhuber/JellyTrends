@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.6
+
+- Provide the `pause()` and `resume()` lifecycle on JellyTrends' static item
+  rows, both native-scroller and fallback layouts. Fixes Jellyfin12.4's home
+  navigation crash `TypeError: t.value.pause is not a function` without changing
+  native components or globally swallowing errors.
+
+## 0.3.5
+
+- Fix: when the chart year did not match, the first library item with the same title was taken
+  (e.g. *Dune* 2021 matched *Dune* 1984). The closest year within 4 years wins now, otherwise an
+  undated item, otherwise no match.
+- New unit tests (`tests/JellyTrends.Tests`, run with `-p:JellyfinVersion=12.4.0`).
+
 ## 0.3.4
 
 - Phones: the scroll arrow buttons are hidden below 600 px wide, where the long headings ran

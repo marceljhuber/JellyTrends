@@ -546,7 +546,7 @@ public static class TrendingService
     /// Removes duplicates, truncates to the requested depth and numbers the chart from 1.
     /// The resulting <see cref="TrendingEntry.Rank"/> is the online position shown on the cards.
     /// </summary>
-    private static List<TrendingEntry> Finalize(List<TrendingEntry> entries, int limit)
+    internal static List<TrendingEntry> Finalize(List<TrendingEntry> entries, int limit)
     {
         List<TrendingEntry> result = [];
         HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
@@ -589,7 +589,7 @@ public static class TrendingService
         return null;
     }
 
-    private static int? TryParseYear(string? text)
+    internal static int? TryParseYear(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
         {

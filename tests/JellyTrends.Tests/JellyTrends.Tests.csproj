@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pass the version globally so the plugin restores the same target: dotnet test tests/JellyTrends.Tests -p:JellyfinVersion=12.4.0 (or 10.11.11) -->
+  <PropertyGroup>
+    <JellyfinVersion Condition="'$(JellyfinVersion)' == ''">12.4.0</JellyfinVersion>
+    <TargetFramework Condition="$(JellyfinVersion.StartsWith('10.11'))">net9.0</TargetFramework>
+    <TargetFramework Condition="$(JellyfinVersion.StartsWith('12.'))">net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!-- The plugin excludes Jellyfin's runtime assemblies (the server provides them); tests need them. -->
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinVersion)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Jellyfin.Plugin.JellyTrends/Jellyfin.Plugin.JellyTrends.csproj" />
+  </ItemGroup>
+</Project>
