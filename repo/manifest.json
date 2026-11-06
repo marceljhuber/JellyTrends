@@ -9,6 +9,39 @@
     "imageUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/assets/jellytrends-banner.png",
     "versions": [
       {
+        "version": "0.3.6.2",
+        "changelog": "0.3.6: fixes the Jellyfin 12.4 home-screen crash (pause is not a function); year-aware library matching; Jellyfin 12.x build.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.6.2-jellyfin-12.0.zip",
+        "checksum": "3B69554FD3FA54862BE6F00BD014AB1D",
+        "timestamp": "2026-11-06T19:44:21Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
+      },
+      {
+        "version": "0.3.6.1",
+        "changelog": "0.3.6: fixes the Jellyfin 12.4 home-screen crash (pause is not a function); year-aware library matching; Jellyfin 12.x build.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.6.1-jellyfin-10.11.zip",
+        "checksum": "9172EF9A1AA95E65956BD4958478A24A",
+        "timestamp": "2026-11-06T19:44:19Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
+      },
+      {
+        "version": "0.3.6.0",
+        "changelog": "0.3.6: fixes the Jellyfin 12.4 home-screen crash (pause is not a function); year-aware library matching; Jellyfin 12.x build.",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/marceljhuber/JellyTrends/master/dist/JellyTrends-0.3.6.0-jellyfin-10.10.zip",
+        "checksum": "E5CED818FE051D9D7A6FA43A0B7DA1B2",
+        "timestamp": "2026-11-06T19:44:17Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
+      },
+      {
         "version": "0.3.4.1",
         "changelog": "Hide scroll arrows on phones, new screenshots and docs.",
         "targetAbi": "10.11.0.0",

@@ -65,8 +65,8 @@ ranks online, not where it ranks inside your shelf.
 
 ## Requirements
 
-- Jellyfin **10.10** or **10.11** (the catalogue serves the right build for your server
-  automatically). Builds for each line are compiled against that line's own Jellyfin packages.
+- Jellyfin **10.10**, **10.11** or **12.x** (the catalogue serves the right build for your server
+  automatically; the 12.x build runs on 12.4). Builds for each line are compiled against that line's own Jellyfin packages.
 - The [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation)
   plugin, which is what lets JellyTrends inject the rows into the web client.
 
@@ -236,7 +236,7 @@ at a time:
 ```sh
 dotnet build JellyTrends.sln -c Release                              # 10.11 (net9.0), the default
 dotnet build JellyTrends.sln -c Release -p:JellyfinVersion=10.10.7   # 10.10 (net8.0)
-dotnet build JellyTrends.sln -c Release -p:JellyfinVersion=12.0.0    # 12.x (net10.0), compile-checked only
+dotnet build JellyTrends.sln -c Release -p:JellyfinVersion=12.0.0    # 12.x (net10.0), runs on 12.4
 ```
 
 Cut a release (builds every target, writes `dist/*.zip` and `repo/manifest.json`):

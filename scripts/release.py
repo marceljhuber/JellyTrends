@@ -34,7 +34,7 @@ LINES = {
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", required=True, help="plugin version without revision, e.g. 0.3.0")
-    parser.add_argument("--targets", default="10.10.7,10.11.11", help="comma separated Jellyfin versions")
+    parser.add_argument("--targets", default="10.10.7,10.11.11,12.4.0", help="comma separated Jellyfin versions")
     parser.add_argument("--changelog", default="")
     args = parser.parse_args()
 
@@ -44,6 +44,7 @@ def main() -> int:
 
     for jellyfin in args.targets.split(","):
         line = ".".join(jellyfin.split(".")[:2])
+        line = "12.0" if line.startswith("12.") else line  # one 12.x build (net10.0, ABI 12.0)
         framework, revision, abi = LINES[line]
         version = f"{args.version}.{revision}"
         out = ROOT / "artifacts" / f"publish-{line}"
@@ -71,6 +72,14 @@ def main() -> int:
             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "dependencies": [FILE_TRANSFORMATION],
         })
+
+    # Keep earlier releases listed (their zips stay in dist/), unless this run rebuilt that version.
+    old = ROOT / "repo/manifest.json"
+    if old.exists():
+        built = {v["version"] for v in versions}
+        for entry in json.loads(old.read_text(encoding="utf-8"))[0]["versions"]:
+            if entry["version"] not in built:
+                versions.append(entry)
 
     # Newest first, as the catalogue expects.
     versions.sort(key=lambda v: tuple(int(p) for p in v["version"].split(".")), reverse=True)
